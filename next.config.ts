@@ -4,15 +4,10 @@ const withPWA = require("next-pwa");
 
 const nextConfig: NextConfig = {
   /* config options here */
-  allowedDevOrigins: [
-    "https://6000-firebase-studio-1757504399197.cluster-6dx7corvpngoivimwvvljgokdw.cloudworkstations.dev",
-  ],
   typescript: {
     ignoreBuildErrors: true,
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  turbopack: {},
   images: {
     remotePatterns: [
       {
