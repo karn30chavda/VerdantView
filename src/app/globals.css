@@ -10,7 +10,7 @@
     --card-foreground: 200 50% 15%;
     --popover: 0 0% 100%;
     --popover-foreground: 200 50% 15%;
-    --primary: 199 89% 48%;
+    --primary: 221 83% 53%;
     --primary-foreground: 0 0% 100%;
     --secondary: 200 45% 92%;
     --secondary-foreground: 200 50% 20%;
@@ -22,9 +22,9 @@
     --destructive-foreground: 0 0% 98%;
     --border: 200 35% 85%;
     --input: 200 35% 85%;
-    --ring: 199 89% 48%;
+    --ring: 221 83% 53%;
     --radius: 0.5rem;
-    --chart-1: 199 89% 48%;
+    --chart-1: 221 83% 53%;
     --chart-2: 195 65% 50%;
     --chart-3: 210 50% 40%;
     --chart-4: 43 74% 66%;
@@ -38,7 +38,7 @@
     --card-foreground: 200 20% 85%;
     --popover: 215 25% 16%;
     --popover-foreground: 200 20% 85%;
-    --primary: 199 89% 48%;
+    --primary: 221 83% 53%;
     --primary-foreground: 0 0% 100%;
     --secondary: 215 20% 20%;
     --secondary-foreground: 200 20% 85%;
@@ -50,8 +50,8 @@
     --destructive-foreground: 0 0% 98%;
     --border: 215 20% 28%;
     --input: 215 20% 28%;
-    --ring: 199 89% 48%;
-    --chart-1: 199 89% 48%;
+    --ring: 221 83% 53%;
+    --chart-1: 221 83% 53%;
     --chart-2: 195 65% 50%;
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
