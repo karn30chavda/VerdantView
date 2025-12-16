@@ -91,6 +91,7 @@ export default function ExpenseScanner() {
   const [activeTab, setActiveTab] = useState("upload");
   const [scanMode, setScanMode] = useState("line-items");
   const [isOnline, setIsOnline] = useState(true);
+  const [scanUsage, setScanUsage] = useState(0);
 
   // Detect online/offline status
   useEffect(() => {
@@ -185,6 +186,29 @@ export default function ExpenseScanner() {
     }
   };
 
+  /*
+   * DAILY_SCAN_LIMIT: Restrict users to a set number of scans per day
+   * to strictly manage API quota usage.
+   */
+  const DAILY_SCAN_LIMIT = 3;
+
+  const getScanUsage = () => {
+    const today = new Date().toISOString().split("T")[0];
+    const usage = localStorage.getItem(`scan_usage_${today}`);
+    return usage ? parseInt(usage, 10) : 0;
+  };
+
+  const incrementScanUsage = () => {
+    const today = new Date().toISOString().split("T")[0];
+    const usage = getScanUsage();
+    localStorage.setItem(`scan_usage_${today}`, (usage + 1).toString());
+    setScanUsage(usage + 1);
+  };
+
+  useEffect(() => {
+    setScanUsage(getScanUsage());
+  }, []);
+
   const handleScanImage = async () => {
     if (typeof window !== "undefined" && !navigator.onLine) {
       toast({
@@ -200,6 +224,16 @@ export default function ExpenseScanner() {
         variant: "destructive",
         title: "No Image or PDF",
         description: "Please select a document to scan.",
+      });
+      return;
+    }
+
+    const currentUsage = scanUsage; // Use state instead of reading direct
+    if (currentUsage >= DAILY_SCAN_LIMIT) {
+      toast({
+        variant: "destructive",
+        title: "Daily Limit Reached",
+        description: `You have used your ${DAILY_SCAN_LIMIT} free scans for today. Please try again tomorrow.`,
       });
       return;
     }
@@ -220,10 +254,10 @@ export default function ExpenseScanner() {
       });
 
       if (!response.ok) {
+        // Log the actual error for debugging but don't show to user
         const errorData = await response.json().catch(() => ({}));
-        const errorMessage =
-          errorData.details || errorData.error || "Failed to scan image";
-        throw new Error(errorMessage);
+        console.error("Scan API Error:", errorData);
+        throw new Error("Scan Service Unavailable");
       }
 
       const data = await response.json();
@@ -233,10 +267,12 @@ export default function ExpenseScanner() {
         toast({
           title: "No Expenses Found",
           description:
-            "Gemini AI could not find any expenses in the document. Try a clearer image.",
+            "We could not identify any expenses. Please try a clearer image.",
           variant: "destructive",
         });
       } else {
+        incrementScanUsage(); // Only increment on success
+
         const otherCategory = categories.find((c) => c.name === "Other");
         const newEditableExpenses: EditableExpense[] = extractedExpenses.map(
           (exp) => {
@@ -260,20 +296,22 @@ export default function ExpenseScanner() {
         setEditableExpenses(newEditableExpenses);
         toast({
           title: "Success!",
-          description: `Gemini found ${newEditableExpenses.length} expense(s) 🎉`,
+          description: `Found ${
+            newEditableExpenses.length
+          } expense(s). You have ${
+            DAILY_SCAN_LIMIT - (scanUsage + 1)
+          } scan(s) remaining today.`,
         });
       }
     } catch (error) {
       console.error("Scan Error:", error);
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Could not process the document";
+      // Simplified error message for the user
       toast({
         variant: "destructive",
-        title: "Scan Failed",
-        description: errorMessage,
-        duration: 8000,
+        title: "Scan Unavailable",
+        description:
+          "The scan service is currently unavailable. Please try again later or add expenses manually.",
+        duration: 5000,
       });
     } finally {
       setIsLoading(false);
@@ -497,7 +535,7 @@ export default function ExpenseScanner() {
                 </TabsContent>
               </Tabs>
             </CardContent>
-            <CardFooter>
+            <CardFooter className="flex flex-col gap-2">
               <Button
                 onClick={handleScanImage}
                 disabled={!imagePreview || isLoading || !isOnline}
@@ -515,6 +553,10 @@ export default function ExpenseScanner() {
                   </>
                 )}
               </Button>
+              <p className="text-xs text-muted-foreground text-center">
+                You have {Math.max(0, DAILY_SCAN_LIMIT - scanUsage)} scan(s)
+                remaining today.
+              </p>
             </CardFooter>
           </Card>
 
@@ -616,7 +658,7 @@ export default function ExpenseScanner() {
                               <Label>Date</Label>
                               <Popover
                                 open={openDatePickerIndex === index}
-                                onOpenChange={(isOpen) =>
+                                onOpenChange={(isOpen: boolean) =>
                                   setOpenDatePickerIndex(isOpen ? index : null)
                                 }
                               >
@@ -659,7 +701,7 @@ export default function ExpenseScanner() {
                               </Label>
                               <Select
                                 value={expense.category}
-                                onValueChange={(value) =>
+                                onValueChange={(value: string) =>
                                   handleExpenseChange(index, "category", value)
                                 }
                               >
