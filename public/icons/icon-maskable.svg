@@ -1,27 +1,7 @@
 <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-  <!-- Background with padding for maskable (safe zone) -->
   <rect width="512" height="512" fill="#2563eb"/>
-  
-  <!-- Safe zone content (80% center) -->
-  <g transform="translate(256, 256)">
-    <!-- Main Leaf (slightly smaller for safe zone) -->
-    <path d="M -65,-100 Q -80,-50 -65,0 Q -50,50 0,65 Q 15,30 0,0 Q -15,-30 -30,-65 Q -45,-80 -65,-100 Z" 
-          fill="#dbeafe" opacity="0.95"/>
-    
-    <!-- Leaf Vein -->
-    <path d="M -65,-100 Q -40,-50 0,0 L 0,65" 
-          stroke="#60a5fa" stroke-width="3" fill="none" opacity="0.8"/>
-    
-    <!-- Secondary Leaf -->
-    <path d="M 65,-100 Q 80,-50 65,0 Q 50,50 0,65 Q -15,30 0,0 Q 15,-30 30,-65 Q 45,-80 65,-100 Z" 
-          fill="#bfdbfe" opacity="0.85"/>
-    
-    <!-- Rupee Symbol -->
-    <g transform="translate(50, 85)">
-      <text x="0" y="0" font-family="Arial, sans-serif" font-size="70" font-weight="bold" fill="white" text-anchor="middle">₹</text>
-    </g>
+  <g transform="translate(64, 64) scale(16)">
+    <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.77 10.3-8 10Z" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
   </g>
-  
-  <!-- VerdantView Text -->
-  <text x="256" y="450" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="white" text-anchor="middle" opacity="0.95">VerdantView</text>
 </svg>
