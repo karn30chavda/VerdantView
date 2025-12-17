@@ -319,7 +319,8 @@ export const exportData = async () => {
   const categories = await getCategories();
   const reminders = await getReminders();
   const settings = await getSettings();
-  return { expenses, categories, reminders, settings };
+  const savingsTransactions = await getSavingsTransactions();
+  return { expenses, categories, reminders, settings, savingsTransactions };
 };
 
 export const importData = async (data: {
@@ -327,6 +328,7 @@ export const importData = async (data: {
   categories?: Category[];
   reminders?: Reminder[];
   settings?: AppSettings;
+  savingsTransactions?: SavingsTransaction[];
 }) => {
   const db = await getDB();
   const storeNames: string[] = [
@@ -334,6 +336,7 @@ export const importData = async (data: {
     "categories",
     "reminders",
     "settings",
+    "savings_transactions",
   ];
   const tx = db.transaction(storeNames, "readwrite");
 
@@ -375,6 +378,15 @@ export const importData = async (data: {
       const store = tx.objectStore("settings");
       store.put({ ...data.settings, id: 1 });
     }
+
+    if (data.savingsTransactions) {
+      const store = tx.objectStore("savings_transactions");
+      store.clear();
+      data.savingsTransactions.forEach((s) => {
+        const { id, ...rest } = s;
+        store.add(rest);
+      });
+    }
   });
 };
 
@@ -385,6 +397,7 @@ export const clearAllData = async () => {
     "categories",
     "reminders",
     "settings",
+    "savings_transactions",
   ];
   const tx = db.transaction(storeNames, "readwrite");
 

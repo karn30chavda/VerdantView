@@ -139,7 +139,7 @@ export default function DashboardPage() {
     // Sort by date desc (already sorted in hook but good guarantee) and take top 5
     return filtered
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, 5);
+      .slice(0, 3);
   }, [expenses, timeRange]);
 
   const formatCurrency = (amount: number) => {
@@ -232,7 +232,7 @@ export default function DashboardPage() {
 
       {/* Monthly Budget Progress */}
       {monthlyBudget > 0 && (
-        <Card className="shadow-sm border-blue-200 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-800">
+        <Card className="shadow-sm">
           <CardHeader className="p-4 pb-2">
             <CardTitle className="text-sm font-medium text-blue-800 dark:text-blue-300">
               Monthly Budget Overview
@@ -396,8 +396,7 @@ export default function DashboardPage() {
                     <div>
                       <p className="font-medium text-sm">{t.title}</p>
                       <p className="text-xs text-muted-foreground">
-                        {format(new Date(t.date), "MMM d, h:mm a")} •{" "}
-                        {t.category}
+                        {format(new Date(t.date), "MMM d")} • {t.category}
                       </p>
                     </div>
                   </div>

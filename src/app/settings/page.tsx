@@ -36,6 +36,7 @@ import {
   exportData,
   clearAllData,
   getExpenses,
+  getSavingsTransactions,
 } from "@/lib/db";
 import type { AppSettings, Category } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
@@ -231,78 +232,146 @@ export default function SettingsPage() {
 
   const handleExportPdf = async () => {
     try {
-      const expenses = await getExpenses();
-      if (expenses.length === 0) {
-        toast({ title: "No expenses to export.", variant: "destructive" });
+      const [expenses, savingsTransactions] = await Promise.all([
+        getExpenses(),
+        getSavingsTransactions(),
+      ]);
+
+      const incomeList = expenses.filter((e) => e.type === "income");
+      const expenseList = expenses.filter((e) => e.type !== "income");
+
+      if (
+        incomeList.length === 0 &&
+        expenseList.length === 0 &&
+        savingsTransactions.length === 0
+      ) {
+        toast({ title: "No data to export.", variant: "destructive" });
         return;
       }
 
       const doc = new jsPDF();
+      let lastY = 35;
 
-      doc.setFontSize(18);
-      doc.text("Expense Report", 14, 22);
-      doc.setFontSize(11);
-      doc.text(`Report generated on: ${format(new Date(), "PPP")}`, 14, 30);
+      // Title
+      doc.setFontSize(22);
+      doc.setTextColor(34, 197, 94); // Green color
+      doc.text("VerdantView Financial Report", 14, 20);
 
-      const tableColumn = [
-        "Date",
-        "Title",
-        "Category",
-        "Payment Mode",
-        "Amount",
-      ];
-      const tableRows: (string | number)[][] = [];
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.text(`Generated on: ${format(new Date(), "PPP")}`, 14, 28);
+      doc.setTextColor(0); // Reset color
 
-      expenses.forEach((expense) => {
-        const expenseData = [
-          format(new Date(expense.date), "yyyy-MM-dd"),
-          expense.title,
-          expense.category,
-          expense.paymentMode,
-          new Intl.NumberFormat("en-IN", {
-            style: "currency",
-            currency: "INR",
-          }).format(expense.amount),
-        ];
-        tableRows.push(expenseData);
-      });
-
-      const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
-      tableRows.push([
-        "",
-        "",
-        "",
-        "Total",
+      const formatCurrency = (amount: number) =>
         new Intl.NumberFormat("en-IN", {
           style: "currency",
           currency: "INR",
-        }).format(totalExpenses),
-      ]);
+        }).format(amount);
 
-      doc.autoTable({
-        startY: 38,
-        head: [tableColumn],
-        body: tableRows,
-        foot: [
-          [
-            "",
-            "",
-            "",
-            "Total",
-            new Intl.NumberFormat("en-IN", {
-              style: "currency",
-              currency: "INR",
-            }).format(totalExpenses),
-          ],
-        ],
-        showFoot: "last_page",
-        footStyles: {
-          fontStyle: "bold",
-        },
-      });
+      // --- SECTION 1: INCOME ---
+      if (incomeList.length > 0) {
+        doc.setFontSize(14);
+        doc.text("Income", 14, lastY);
+        lastY += 5;
+
+        const tableColumn = ["Date", "Title", "Category", "Mode", "Amount"];
+        const tableRows = incomeList.map((item) => [
+          format(new Date(item.date), "yyyy-MM-dd"),
+          item.title,
+          item.category,
+          item.paymentMode,
+          formatCurrency(item.amount),
+        ]);
+
+        const totalIncome = incomeList.reduce(
+          (sum, item) => sum + item.amount,
+          0
+        );
+
+        doc.autoTable({
+          startY: lastY,
+          head: [tableColumn],
+          body: tableRows,
+          foot: [["", "", "", "Total Income", formatCurrency(totalIncome)]],
+          theme: "striped",
+          headStyles: { fillColor: [40, 167, 69] }, // Green header
+          footStyles: {
+            fontStyle: "bold",
+            fillColor: [240, 240, 240],
+            textColor: 0,
+          },
+        });
+
+        lastY = (doc as any).lastAutoTable.finalY + 15;
+      }
+
+      // --- SECTION 2: EXPENSES ---
+      if (expenseList.length > 0) {
+        doc.setFontSize(14);
+        doc.text("Expenses", 14, lastY);
+        lastY += 5;
+
+        const tableColumn = ["Date", "Title", "Category", "Mode", "Amount"];
+        const tableRows = expenseList.map((item) => [
+          format(new Date(item.date), "yyyy-MM-dd"),
+          item.title,
+          item.category,
+          item.paymentMode,
+          formatCurrency(item.amount),
+        ]);
+
+        const totalExpenses = expenseList.reduce(
+          (sum, item) => sum + item.amount,
+          0
+        );
+
+        doc.autoTable({
+          startY: lastY,
+          head: [tableColumn],
+          body: tableRows,
+          foot: [["", "", "", "Total Expenses", formatCurrency(totalExpenses)]],
+          theme: "striped",
+          headStyles: { fillColor: [220, 53, 69] }, // Red header
+          footStyles: {
+            fontStyle: "bold",
+            fillColor: [240, 240, 240],
+            textColor: 0,
+          },
+        });
+
+        lastY = (doc as any).lastAutoTable.finalY + 15;
+      }
+
+      // --- SECTION 3: SAVINGS TRANSACTIONS ---
+      if (savingsTransactions.length > 0) {
+        doc.setFontSize(14);
+        doc.text("Savings History", 14, lastY);
+        lastY += 5;
+
+        const tableColumn = ["Date", "Type", "Note", "Amount"];
+        const tableRows = savingsTransactions.map((item) => [
+          format(new Date(item.date), "yyyy-MM-dd"),
+          item.type.replace("_", " ").toUpperCase(),
+          item.note || "-",
+          formatCurrency(item.amount),
+        ]);
+
+        doc.autoTable({
+          startY: lastY,
+          head: [tableColumn],
+          body: tableRows,
+          theme: "striped",
+          headStyles: { fillColor: [0, 123, 255] }, // Blue header
+        });
+
+        lastY = (doc as any).lastAutoTable.finalY + 15;
+      }
+
+      // --- SUMMARY ---
+      // Optional: Add a small summary section if needed, but the totals in tables might be enough.
 
       doc.save(
-        `verdantview-expenses-${new Date().toISOString().split("T")[0]}.pdf`
+        `verdantview-report-${new Date().toISOString().split("T")[0]}.pdf`
       );
       toast({ title: "PDF exported successfully!" });
     } catch (error) {
