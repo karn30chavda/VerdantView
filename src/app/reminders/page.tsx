@@ -204,7 +204,9 @@ export default function RemindersPage() {
       toast({ title: "Reminder added successfully!" });
 
       if (notificationPermission === "granted") {
-        await scheduleReminderNotifications(values.title, values.date);
+        scheduleReminderNotifications(values.title, values.date).catch((err) =>
+          console.error("Failed to schedule notification:", err)
+        );
       }
 
       form.reset({
