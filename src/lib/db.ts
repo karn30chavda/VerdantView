@@ -350,7 +350,7 @@ export const importData = async (data: {
 
     if (data.expenses) {
       const store = tx.objectStore("expenses");
-      store.clear(); // Clear existing expenses
+      // Don't clear existing data, just append
       data.expenses.forEach((e) => {
         const { id, ...rest } = e; // Explicitly remove id to allow auto-increment
         store.add(rest);
@@ -359,15 +359,29 @@ export const importData = async (data: {
 
     if (data.categories) {
       const store = tx.objectStore("categories");
-      store.clear();
-      const allCategories = new Set(defaultCategories);
-      data.categories.forEach((c) => allCategories.add(c.name));
-      allCategories.forEach((name) => store.add({ name }));
+
+      data.categories.forEach((c) => {
+
+        if (!defaultCategories.includes(c.name)) {
+
+        }
+      });
+
+      const catStore = tx.objectStore("categories");
+      const index = catStore.index("name");
+      data.categories.forEach((c) => {
+        const request = index.get(c.name);
+        request.onsuccess = () => {
+          if (!request.result) {
+            catStore.add({ name: c.name });
+          }
+        };
+      });
     }
 
     if (data.reminders) {
       const store = tx.objectStore("reminders");
-      store.clear();
+      // Append reminders
       data.reminders.forEach((r) => {
         const { id, ...rest } = r;
         store.add(rest);
@@ -376,12 +390,17 @@ export const importData = async (data: {
 
     if (data.settings) {
       const store = tx.objectStore("settings");
-      store.put({ ...data.settings, id: 1 });
+      // Settings we want to merge/overwrite
+      const getReq = store.get(1);
+      getReq.onsuccess = () => {
+        const existing = getReq.result || {};
+        store.put({ ...existing, ...data.settings, id: 1 });
+      };
     }
 
     if (data.savingsTransactions) {
       const store = tx.objectStore("savings_transactions");
-      store.clear();
+      // Append transactions
       data.savingsTransactions.forEach((s) => {
         const { id, ...rest } = s;
         store.add(rest);
