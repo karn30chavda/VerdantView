@@ -86,7 +86,11 @@ async function scheduleReminderNotifications(title: string, date: Date) {
         type: "SCHEDULE_REMINDER",
         payload: {
           title: `Upcoming: ${title}`,
-          options: { body: `Due tomorrow.` },
+          options: {
+            body: `Reminder: ${title} is due tomorrow, please check it`,
+            icon: "/icons/icon.svg",
+            vibrate: [200, 100, 200, 400],
+          },
           schedule: { at: oneDayBefore.getTime() },
         },
       });
@@ -99,7 +103,11 @@ async function scheduleReminderNotifications(title: string, date: Date) {
         type: "SCHEDULE_REMINDER",
         payload: {
           title: `Upcoming: ${title}`,
-          options: { body: `Due tomorrow.` },
+          options: {
+            body: `Reminder: ${title} is due tomorrow, please check it`,
+            icon: "/icons/icon.svg",
+            vibrate: [200, 100, 200, 400],
+          },
           schedule: { at: now.getTime() + 1000 },
         },
       });
@@ -112,7 +120,11 @@ async function scheduleReminderNotifications(title: string, date: Date) {
         type: "SCHEDULE_REMINDER",
         payload: {
           title: `Due Today: ${title}`,
-          options: { body: `Payment is due today.` },
+          options: {
+            body: `Reminder: ${title} is due today, please check it`,
+            icon: "/icons/icon.svg",
+            vibrate: [200, 100, 200, 400],
+          },
           schedule: { at: dueDatePoints.getTime() },
         },
       });
@@ -122,7 +134,11 @@ async function scheduleReminderNotifications(title: string, date: Date) {
         type: "SCHEDULE_REMINDER",
         payload: {
           title: `Due Today: ${title}`,
-          options: { body: `Payment is due today.` },
+          options: {
+            body: `Reminder: ${title} is due today, please check it`,
+            icon: "/icons/icon.svg",
+            vibrate: [200, 100, 200, 400],
+          },
           schedule: { at: now.getTime() + 1000 }, // delay slightly
         },
       });
