@@ -37,6 +37,7 @@ import {
   clearAllData,
   getExpenses,
   getSavingsTransactions,
+  importData,
 } from "@/lib/db";
 import type { AppSettings, Category } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
@@ -54,6 +55,7 @@ import {
   AlertTriangle,
   Save,
   Plus,
+  Upload,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -228,6 +230,55 @@ export default function SettingsPage() {
     } catch (error) {
       toast({ title: "Failed to export data.", variant: "destructive" });
     }
+  };
+
+  const handleImport = async () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "application/json";
+
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        try {
+          const json = event.target?.result as string;
+          const data = JSON.parse(json);
+
+          // Basic validation to check if it looks like our backup
+          if (
+            !data.expenses &&
+            !data.categories &&
+            !data.reminders &&
+            !data.settings &&
+            !data.savingsTransactions
+          ) {
+            throw new Error("Invalid backup file format");
+          }
+
+          await importData(data);
+          toast({
+            title: "Data imported successfully!",
+            description: "Your dashboard has been updated.",
+          });
+          fetchData(); // Refresh current page data
+          // Optional: Force a hard reload if deep state needs it,
+          // but fetchData + db events should handle most cases.
+        } catch (error) {
+          console.error("Import error:", error);
+          toast({
+            title: "Failed to import data.",
+            description: "The file might be corrupted or invalid.",
+            variant: "destructive",
+          });
+        }
+      };
+      reader.readAsText(file);
+    };
+
+    input.click();
   };
 
   const handleExportPdf = async () => {
@@ -654,97 +705,166 @@ export default function SettingsPage() {
         <Separator />
 
         {/* SECTION: DATA & BACKUP */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Database className="h-5 w-5" /> Data & Backup
-          </h2>
+        <div className="space-y-6">
+          <div className="flex items-center gap-3 pb-2 ">
+            <div className="p-2 bg-indigo-500/10 rounded-lg text-indigo-600 dark:text-indigo-400">
+              <Database className="h-6 w-6" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-foreground">
+                Data Management
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Control your digital footprint and data portability.
+              </p>
+            </div>
+          </div>
 
           <div className="grid gap-6 md:grid-cols-2">
-            <Card>
+            {/* Backup & Restore Card */}
+            <Card className="overflow-hidden border-indigo-100 dark:border-indigo-900/50 shadow-md transition-all hover:shadow-lg group">
+              <div className="h-1.5 w-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
               <CardHeader>
-                <CardTitle className="text-base text-indigo-600 dark:text-indigo-400 flex items-center gap-2">
-                  <FileJson className="h-4 w-4" /> JSON Backup
-                </CardTitle>
-                <CardDescription>
-                  Export all your data as a JSON file for backup.
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-2.5 bg-indigo-50 dark:bg-indigo-950/40 rounded-xl text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform">
+                    <FileJson className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">Backup & Restore</CardTitle>
+                    <CardDescription className="text-xs">
+                      JSON Format
+                    </CardDescription>
+                  </div>
+                </div>
+                <CardDescription className="text-sm/relaxed leading-normal">
+                  Securely save your entire financial history to a file. Use
+                  this to migrate to a new device.
                 </CardDescription>
               </CardHeader>
-              <CardFooter>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={handleExport}
-                >
-                  <Download className="mr-2 h-4 w-4" /> Download Backup
-                </Button>
-              </CardFooter>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    onClick={handleExport}
+                    variant="outline"
+                    className="h-auto py-4 flex flex-col gap-2  dark:border-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 hover:text-indigo-600 hover:border-indigo-300 transition-all"
+                  >
+                    <Download className="h-5 w-5" />
+                    <div className="flex flex-col items-center">
+                      <span className="text-xs font-bold">Export Data</span>
+                      <span className="text-[10px] text-muted-foreground font-normal">
+                        Save to device
+                      </span>
+                    </div>
+                  </Button>
+                  <Button
+                    onClick={handleImport}
+                    variant="outline"
+                    className="h-auto py-4 flex flex-col gap-2  dark:border-purple-800 hover:bg-purple-50 dark:hover:bg-purple-950/30 hover:text-purple-600 hover:border-purple-300 transition-all"
+                  >
+                    <Upload className="h-5 w-5" />
+                    <div className="flex flex-col items-center">
+                      <span className="text-xs font-bold">Import Data</span>
+                      <span className="text-[10px] text-muted-foreground font-normal">
+                        Restore from file
+                      </span>
+                    </div>
+                  </Button>
+                </div>
+              </CardContent>
             </Card>
 
-            <Card>
+            {/* Reports Card */}
+            <Card className="overflow-hidden border-emerald-100 dark:border-emerald-900/50 shadow-md transition-all hover:shadow-lg group">
+              <div className="h-1.5 w-full bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500" />
               <CardHeader>
-                <CardTitle className="text-base text-indigo-600 dark:text-indigo-400 flex items-center gap-2">
-                  <FileText className="h-4 w-4" /> PDF Report
-                </CardTitle>
-                <CardDescription>
-                  Generate a printable PDF report of your expenses.
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform">
+                    <FileText className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">Financial Reports</CardTitle>
+                    <CardDescription className="text-xs">
+                      PDF Format
+                    </CardDescription>
+                  </div>
+                </div>
+                <CardDescription className="text-sm/relaxed leading-normal">
+                  Generate professional PDF reports of your income, expenses,
+                  and savings for your records.
                 </CardDescription>
               </CardHeader>
-              <CardFooter>
+              <CardContent>
                 <Button
-                  variant="outline"
-                  className="w-full"
                   onClick={handleExportPdf}
+                  className="w-full h-auto py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 transition-all"
                 >
-                  <Download className="mr-2 h-4 w-4" /> Download PDF
+                  <div className="flex items-center gap-2">
+                    <Download className="h-5 w-5" />
+                    <span className="font-semibold">Download PDF Report</span>
+                  </div>
                 </Button>
-              </CardFooter>
+              </CardContent>
             </Card>
           </div>
 
           {/* Danger Zone */}
-          <Card className="border-destructive/30 bg-destructive/5 mt-4">
+          <Card className="border-destructive/20 bg-destructive/5 overflow-hidden">
             <CardHeader>
               <div className="flex items-center gap-2 text-destructive">
-                <AlertTriangle className="w-5 h-5" />
+                <div className="p-2 bg-destructive/10 rounded-full">
+                  <AlertTriangle className="w-5 h-5" />
+                </div>
                 <CardTitle className="text-base">Danger Zone</CardTitle>
               </div>
               <CardDescription>
-                Permanently delete all data from this device.
+                Irreversible actions. Tread carefully.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive" className="w-full sm:w-auto">
-                    <Trash2 className="w-4 h-4 mr-2" /> Clear All Data
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>
-                      Are you absolutely sure?
-                    </AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This action cannot be undone. This will permanently delete
-                      all your:
-                      <ul className="list-disc list-inside mt-2 ml-2">
-                        <li>Expenses and Income records</li>
-                        <li>Custom Categories</li>
-                        <li>Budget and Savings settings</li>
-                      </ul>
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={handleClearData}
-                      className="bg-destructive hover:bg-destructive/90"
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-lg border border-destructive/10 bg-background/50">
+                <div className="space-y-1">
+                  <h4 className="text-sm font-medium">Delete all data</h4>
+                  <p className="text-xs text-muted-foreground max-w-[300px]">
+                    Permanently remove all expenses, settings, and categories
+                    from this device.
+                  </p>
+                </div>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="destructive"
+                      className="shrink-0 w-full sm:w-auto hover:bg-red-600"
                     >
-                      Yes, Delete Everything
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+                      <Trash2 className="w-4 h-4 mr-2" /> Clear All Data
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>
+                        Are you absolutely sure?
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action cannot be undone. This will permanently
+                        delete all your:
+                        <ul className="list-disc list-inside mt-2 ml-2">
+                          <li>Expenses and Income records</li>
+                          <li>Custom Categories</li>
+                          <li>Budget and Savings settings</li>
+                        </ul>
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleClearData}
+                        className="bg-destructive hover:bg-destructive/90"
+                      >
+                        Yes, Delete Everything
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
             </CardContent>
           </Card>
         </div>
