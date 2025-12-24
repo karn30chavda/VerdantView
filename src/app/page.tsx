@@ -36,7 +36,7 @@ import { Progress } from "@/components/ui/progress";
 
 export default function DashboardPage() {
   const { expenses, summaries, loading, error } = useExpenses();
-  const [timeRange, setTimeRange] = useState("all"); // Default to all
+  const [timeRange, setTimeRange] = useState("today"); // Default to today
   const [userName, setUserName] = useState<string>("User");
   const [monthlyBudget, setMonthlyBudget] = useState<number>(0);
   const [reminders, setReminders] = useState<Reminder[]>([]);
@@ -172,7 +172,7 @@ export default function DashboardPage() {
 
       {/* Time Range Filter */}
       <Tabs
-        defaultValue="week"
+        defaultValue="today"
         value={timeRange}
         onValueChange={setTimeRange}
         className="w-full"
