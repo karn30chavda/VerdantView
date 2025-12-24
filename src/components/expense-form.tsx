@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -45,9 +45,12 @@ import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
   title: z.string().min(2, { message: "Title must be at least 2 characters." }),
-  amount: z.coerce
-    .number()
-    .positive({ message: "Amount must be a positive number." }),
+  amount: z
+    .string()
+    .min(1, "Amount is required")
+    .refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
+      message: "Amount must be a positive number",
+    }),
   date: z.date(),
   category: z.string().min(1, { message: "Please select a category." }),
   paymentMode: z.enum(["Cash", "Card", "Online", "Other"]),
@@ -86,7 +89,7 @@ export function ExpenseForm({ expense, onSave }: ExpenseFormProps) {
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: expense?.title || "",
-      amount: expense?.amount || undefined,
+      amount: expense?.amount ? String(expense.amount) : "",
       date: expense ? new Date(expense.date) : new Date(),
       category: expense?.category || "",
       paymentMode: expense?.paymentMode || "Card",
@@ -98,16 +101,20 @@ export function ExpenseForm({ expense, onSave }: ExpenseFormProps) {
   const activeCategories =
     currentType === "income" ? incomeSources : categories;
 
+  const prevExpenseIdRef = useRef(expense?.id);
+
   useEffect(() => {
-    // Reset form values when the expense prop changes
-    form.reset({
-      title: expense?.title || "",
-      amount: expense?.amount || undefined,
-      date: expense ? new Date(expense.date) : new Date(),
-      category: expense?.category || "",
-      paymentMode: expense?.paymentMode || "Card",
-      type: expense?.type || defaultType,
-    });
+    if (expense?.id !== prevExpenseIdRef.current) {
+      prevExpenseIdRef.current = expense?.id;
+      form.reset({
+        title: expense?.title || "",
+        amount: expense?.amount ? String(expense.amount) : "",
+        date: expense ? new Date(expense.date) : new Date(),
+        category: expense?.category || "",
+        paymentMode: expense?.paymentMode || "Card",
+        type: expense?.type || defaultType,
+      });
+    }
   }, [expense, form, defaultType]);
 
   useEffect(() => {
@@ -137,6 +144,7 @@ export function ExpenseForm({ expense, onSave }: ExpenseFormProps) {
       if (expense) {
         const expenseData: Expense = {
           ...values,
+          amount: Number(values.amount),
           id: expense.id,
           date: values.date.toISOString(),
         };
@@ -150,6 +158,7 @@ export function ExpenseForm({ expense, onSave }: ExpenseFormProps) {
         const { ...rest } = values;
         const expenseData: Omit<Expense, "id"> = {
           ...rest,
+          amount: Number(values.amount),
           date: values.date.toISOString(),
         };
         await addExpense(expenseData);
@@ -321,14 +330,6 @@ export function ExpenseForm({ expense, onSave }: ExpenseFormProps) {
                         step="0.01"
                         placeholder="0.00"
                         {...field}
-                        value={field.value ?? ""}
-                        onChange={(e) =>
-                          field.onChange(
-                            e.target.value === ""
-                              ? undefined
-                              : Number(e.target.value)
-                          )
-                        }
                       />
                     </FormControl>
                     <FormMessage />
