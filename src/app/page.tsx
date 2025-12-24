@@ -107,40 +107,11 @@ export default function DashboardPage() {
   }, [summaries, timeRange]);
 
   const recentTransactions = useMemo(() => {
-    const now = new Date();
-    let filtered = expenses;
-
-    // Filter by time range
-    if (timeRange === "today") {
-      filtered = expenses.filter((e) => isToday(new Date(e.date)));
-    } else if (timeRange === "week") {
-      filtered = expenses.filter((e) =>
-        isWithinInterval(new Date(e.date), {
-          start: startOfWeek(now),
-          end: endOfWeek(now),
-        })
-      );
-    } else if (timeRange === "month") {
-      filtered = expenses.filter((e) =>
-        isWithinInterval(new Date(e.date), {
-          start: startOfMonth(now),
-          end: endOfMonth(now),
-        })
-      );
-    } else if (timeRange === "all") {
-      filtered = expenses.filter((e) =>
-        isWithinInterval(new Date(e.date), {
-          start: startOfYear(now),
-          end: endOfYear(now),
-        })
-      );
-    }
-
-    // Sort by date desc (already sorted in hook but good guarantee) and take top 5
-    return filtered
+ 
+    return [...expenses]
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       .slice(0, 3);
-  }, [expenses, timeRange]);
+  }, [expenses]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-IN", {
