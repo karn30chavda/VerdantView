@@ -353,6 +353,9 @@ export const importData = async (data: {
       // Don't clear existing data, just append
       data.expenses.forEach((e) => {
         const { id, ...rest } = e; // Explicitly remove id to allow auto-increment
+        if (typeof rest.amount === "string") {
+          rest.amount = Number(rest.amount);
+        }
         store.add(rest);
       });
     }
@@ -361,9 +364,7 @@ export const importData = async (data: {
       const store = tx.objectStore("categories");
 
       data.categories.forEach((c) => {
-
         if (!defaultCategories.includes(c.name)) {
-
         }
       });
 
