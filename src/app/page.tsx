@@ -107,14 +107,9 @@ export default function DashboardPage() {
   }, [summaries, timeRange]);
 
   const recentTransactions = useMemo(() => {
- 
     return [...expenses]
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-<<<<<<< HEAD
       .slice(0, 4);
-=======
-      .slice(0, 3);
->>>>>>> 14e1a11f8a7c22c0a421c73971971775b0a219a6
   }, [expenses]);
 
   const formatCurrency = (amount: number) => {
