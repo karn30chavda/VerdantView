@@ -313,21 +313,6 @@ export const addSavingsTransaction = (
     store.add(transaction)
   );
 
-<<<<<<< HEAD
-export const updateSavingsTransaction = (
-  transaction: SavingsTransaction
-): Promise<IDBValidKey> =>
-  performDBOperation("savings_transactions", "readwrite", (store) =>
-    store.put(transaction)
-  );
-
-export const deleteSavingsTransaction = (id: number): Promise<void> =>
-  performDBOperation("savings_transactions", "readwrite", (store) =>
-    store.delete(id)
-  );
-
-=======
->>>>>>> 14e1a11f8a7c22c0a421c73971971775b0a219a6
 // Data Management
 export const exportData = async () => {
   const expenses = await getExpenses();

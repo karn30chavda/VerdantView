@@ -6,10 +6,7 @@ export interface Expense {
   category: string;
   paymentMode: "Cash" | "Card" | "Online" | "Other";
   type?: "income" | "expense";
-<<<<<<< HEAD
-  excludeFromBudget?: boolean; // If true, this expense won't count against monthly budget
-=======
->>>>>>> 14e1a11f8a7c22c0a421c73971971775b0a219a6
+  excludeFromBudget?: boolean;
 }
 
 export interface Category {

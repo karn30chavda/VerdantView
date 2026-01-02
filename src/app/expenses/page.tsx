@@ -3,10 +3,6 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-<<<<<<< HEAD
-import { Badge } from "@/components/ui/badge";
-=======
->>>>>>> 14e1a11f8a7c22c0a421c73971971775b0a219a6
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
@@ -139,25 +135,9 @@ function ExpenseListItem({
                 )}
               </div>
               <div className="flex flex-col items-start truncate text-left">
-<<<<<<< HEAD
-                <div className="flex items-center gap-2 w-full">
-                  <span className="font-semibold truncate">
-                    {expense.title}
-                  </span>
-                  {expense.excludeFromBudget && !isIncome && (
-                    <Badge
-                      variant="outline"
-                      className="text-[10px] px-1.5 py-0 h-4 bg-blue-50 text-blue-700 border-blue-200"
-                    >
-                      Not in Budget
-                    </Badge>
-                  )}
-                </div>
-=======
                 <span className="font-semibold truncate w-full">
                   {expense.title}
                 </span>
->>>>>>> 14e1a11f8a7c22c0a421c73971971775b0a219a6
                 <span className="text-xs text-muted-foreground truncate w-full">
                   {format(new Date(expense.date), "MMM d")} • {expense.category}
                 </span>

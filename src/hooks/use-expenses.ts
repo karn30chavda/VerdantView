@@ -97,12 +97,6 @@ export function useExpenses() {
       (e) => !e.type || e.type === "expense"
     );
 
-<<<<<<< HEAD
-    // Filter expenses that should count towards budget (excludeFromBudget = false or undefined)
-    const budgetExpenseItems = expenseItems.filter((e) => !e.excludeFromBudget);
-
-=======
->>>>>>> 14e1a11f8a7c22c0a421c73971971775b0a219a6
     const calculateSum = (
       items: Expense[],
       interval: { start: Date; end: Date } | null
@@ -138,12 +132,7 @@ export function useExpenses() {
 
     return {
       income: getSums(incomeItems),
-<<<<<<< HEAD
-      expense: getSums(budgetExpenseItems), // Use budgetExpenseItems instead of expenseItems
-      expenseAll: getSums(expenseItems), // Keep track of all expenses including excluded ones
-=======
       expense: getSums(expenseItems),
->>>>>>> 14e1a11f8a7c22c0a421c73971971775b0a219a6
     };
   }, [expenses]);
 
