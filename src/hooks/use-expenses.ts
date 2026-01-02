@@ -115,24 +115,29 @@ export function useExpenses() {
     };
 
     // Helper specific for the existing structure
-    const getSums = (items: Expense[]) => ({
+    // For expenses, filter out items with excludeFromBudget = true
+    const getSums = (items: Expense[], isExpense: boolean = false) => ({
       today: items
         .filter((e) => isToday(new Date(e.date)))
+        .filter((e) => !isExpense || !e.excludeFromBudget) // Exclude from budget if flagged
         .reduce((sum, e) => sum + e.amount, 0),
       week: items
         .filter((e) => isWithinInterval(new Date(e.date), intervals.week))
+        .filter((e) => !isExpense || !e.excludeFromBudget) // Exclude from budget if flagged
         .reduce((sum, e) => sum + e.amount, 0),
       month: items
         .filter((e) => isWithinInterval(new Date(e.date), intervals.month))
+        .filter((e) => !isExpense || !e.excludeFromBudget) // Exclude from budget if flagged
         .reduce((sum, e) => sum + e.amount, 0),
       year: items
         .filter((e) => isWithinInterval(new Date(e.date), intervals.year))
+        .filter((e) => !isExpense || !e.excludeFromBudget) // Exclude from budget if flagged
         .reduce((sum, e) => sum + e.amount, 0),
     });
 
     return {
-      income: getSums(incomeItems),
-      expense: getSums(expenseItems),
+      income: getSums(incomeItems, false),
+      expense: getSums(expenseItems, true), // Pass true to indicate these are expenses
     };
   }, [expenses]);
 
