@@ -21,6 +21,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+<<<<<<< HEAD
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -31,14 +32,19 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+=======
+>>>>>>> 14e1a11f8a7c22c0a421c73971971775b0a219a6
   PiggyBank,
   Target,
   TrendingUp,
   AlertCircle,
   Plus,
   History,
+<<<<<<< HEAD
   Pencil,
   Trash2,
+=======
+>>>>>>> 14e1a11f8a7c22c0a421c73971971775b0a219a6
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -46,8 +52,11 @@ import {
   updateSettings,
   getSavingsTransactions,
   addSavingsTransaction,
+<<<<<<< HEAD
   updateSavingsTransaction,
   deleteSavingsTransaction,
+=======
+>>>>>>> 14e1a11f8a7c22c0a421c73971971775b0a219a6
 } from "@/lib/db";
 import { AppSettings, SavingsTransaction } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
@@ -65,6 +74,7 @@ export default function SavingsPage() {
   const [amountToAdd, setAmountToAdd] = useState("");
   const [isEditGoalOpen, setIsEditGoalOpen] = useState(false);
   const [newGoal, setNewGoal] = useState("");
+<<<<<<< HEAD
   const [isEditTransactionOpen, setIsEditTransactionOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] =
     useState<SavingsTransaction | null>(null);
@@ -72,6 +82,8 @@ export default function SavingsPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [transactionToDelete, setTransactionToDelete] =
     useState<SavingsTransaction | null>(null);
+=======
+>>>>>>> 14e1a11f8a7c22c0a421c73971971775b0a219a6
 
   const fetchData = async () => {
     try {
@@ -152,6 +164,7 @@ export default function SavingsPage() {
     }
   };
 
+<<<<<<< HEAD
   const handleEditTransaction = (transaction: SavingsTransaction) => {
     setEditingTransaction(transaction);
     setEditAmount(String(transaction.amount));
@@ -220,6 +233,8 @@ export default function SavingsPage() {
     }
   };
 
+=======
+>>>>>>> 14e1a11f8a7c22c0a421c73971971775b0a219a6
   if (loading) {
     return (
       <div className="flex flex-col gap-6 pb-20">
@@ -405,9 +420,15 @@ export default function SavingsPage() {
                 {transactions.map((tx) => (
                   <div
                     key={tx.id}
+<<<<<<< HEAD
                     className="flex items-center justify-between border-b pb-3 last:border-0 last:pb-0"
                   >
                     <div className="flex-1">
+=======
+                    className="flex items-center justify-between border-b pb-2 last:border-0 last:pb-0"
+                  >
+                    <div>
+>>>>>>> 14e1a11f8a7c22c0a421c73971971775b0a219a6
                       <p className="font-medium text-sm">
                         {tx.type === "deposit" ? "Added Funds" : "Transaction"}
                       </p>
@@ -415,6 +436,7 @@ export default function SavingsPage() {
                         {format(new Date(tx.date), "PPP")}
                       </p>
                     </div>
+<<<<<<< HEAD
                     <div className="flex items-center gap-3">
                       <span className="font-bold text-emerald-600">
                         +
@@ -443,6 +465,16 @@ export default function SavingsPage() {
                         </Button>
                       </div>
                     </div>
+=======
+                    <span className="font-bold text-emerald-600">
+                      +
+                      {new Intl.NumberFormat("en-IN", {
+                        style: "currency",
+                        currency: "INR",
+                        maximumFractionDigits: 0,
+                      }).format(tx.amount)}
+                    </span>
+>>>>>>> 14e1a11f8a7c22c0a421c73971971775b0a219a6
                   </div>
                 ))}
               </div>
@@ -453,6 +485,7 @@ export default function SavingsPage() {
             )}
           </CardContent>
         </Card>
+<<<<<<< HEAD
 
         {/* Edit Transaction Dialog */}
         <Dialog
@@ -526,6 +559,8 @@ export default function SavingsPage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+=======
+>>>>>>> 14e1a11f8a7c22c0a421c73971971775b0a219a6
       </div>
     </div>
   );
