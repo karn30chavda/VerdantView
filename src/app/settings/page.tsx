@@ -1,0 +1,878 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
+import { format } from "date-fns";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Badge } from "@/components/ui/badge";
+import {
+  getSettings,
+  updateSettings,
+  getCategories,
+  addCategory,
+  deleteCategory,
+  exportData,
+  clearAllData,
+  getExpenses,
+  getSavingsTransactions,
+  importData,
+} from "@/lib/db";
+import type { AppSettings, Category } from "@/lib/types";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Loader2,
+  Trash2,
+  X,
+  User,
+  Wallet,
+  Tags,
+  Database,
+  Download,
+  FileJson,
+  FileText,
+  AlertTriangle,
+  Save,
+  Plus,
+  Upload,
+} from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import Link from "next/link";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
+
+// Extend jsPDF with autoTable
+declare module "jspdf" {
+  interface jsPDF {
+    autoTable: (options: any) => jsPDF;
+  }
+}
+
+const budgetSchema = z.object({
+  monthlyBudget: z.coerce
+    .number()
+    .min(0, { message: "Budget must be a positive number." }),
+});
+
+const categorySchema = z.object({
+  name: z
+    .string()
+    .min(2, { message: "Category name must be at least 2 characters." }),
+});
+
+const nameSchema = z.object({
+  userName: z
+    .string()
+    .min(1, { message: "Name cannot be empty." })
+    .max(20, { message: "Name is too long." }),
+});
+
+const defaultCategories = [
+  "Groceries",
+  "Dining",
+  "Travel",
+  "Utilities",
+  "Shopping",
+  "Food",
+  "Medicine",
+  "Other",
+];
+
+export default function SettingsPage() {
+  const router = useRouter();
+  const [settings, setSettings] = useState<AppSettings | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const { toast } = useToast();
+
+  const budgetForm = useForm<z.infer<typeof budgetSchema>>({
+    resolver: zodResolver(budgetSchema),
+    defaultValues: {
+      monthlyBudget: 0,
+    },
+  });
+
+  const categoryForm = useForm<z.infer<typeof categorySchema>>({
+    resolver: zodResolver(categorySchema),
+    defaultValues: {
+      name: "",
+    },
+  });
+
+  const nameForm = useForm<z.infer<typeof nameSchema>>({
+    resolver: zodResolver(nameSchema),
+    defaultValues: {
+      userName: "",
+    },
+  });
+
+  const fetchData = async () => {
+    const [fetchedSettings, fetchedCategories] = await Promise.all([
+      getSettings(),
+      getCategories(),
+    ]);
+    setSettings(fetchedSettings);
+    setCategories(fetchedCategories);
+    if (fetchedSettings) {
+      budgetForm.reset({ monthlyBudget: fetchedSettings.monthlyBudget });
+      nameForm.reset({ userName: fetchedSettings.userName || "" });
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleUpdateBudget = async (values: z.infer<typeof budgetSchema>) => {
+    try {
+      await updateSettings(values);
+      toast({ title: "Budget updated successfully!" });
+      fetchData();
+    } catch (error) {
+      toast({ title: "Failed to update budget.", variant: "destructive" });
+    }
+  };
+
+  const handleUpdateName = async (values: z.infer<typeof nameSchema>) => {
+    try {
+      await updateSettings(values);
+      toast({ title: "Name updated successfully!" });
+      fetchData();
+    } catch (error) {
+      toast({ title: "Failed to update name.", variant: "destructive" });
+    }
+  };
+
+  const handleAddCategory = async (values: z.infer<typeof categorySchema>) => {
+    try {
+      // Check for duplicates locally first to give better feedback
+      if (
+        categories.some(
+          (c) => c.name.toLowerCase() === values.name.toLowerCase()
+        )
+      ) {
+        toast({ title: "Category already exists.", variant: "destructive" });
+        return;
+      }
+      await addCategory({ name: values.name });
+      toast({ title: "Category added successfully!" });
+      categoryForm.reset({ name: "" });
+      fetchData();
+    } catch (error) {
+      toast({
+        title: "Failed to add category.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteCategory = async (id: number, name: string) => {
+    if (defaultCategories.includes(name)) {
+      toast({
+        title: "Cannot delete default category.",
+        variant: "destructive",
+      });
+      return;
+    }
+    try {
+      await deleteCategory(id);
+      toast({ title: "Category deleted." });
+      fetchData();
+    } catch (error) {
+      toast({ title: "Failed to delete category.", variant: "destructive" });
+    }
+  };
+
+  const handleExport = async () => {
+    try {
+      const data = await exportData();
+      const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(
+        JSON.stringify(data, null, 2)
+      )}`;
+      const link = document.createElement("a");
+      link.href = jsonString;
+      link.download = `verdantview-backup-${
+        new Date().toISOString().split("T")[0]
+      }.json`;
+      link.click();
+      toast({ title: "Data exported successfully!" });
+    } catch (error) {
+      toast({ title: "Failed to export data.", variant: "destructive" });
+    }
+  };
+
+  const handleImport = async () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "application/json";
+
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        try {
+          const json = event.target?.result as string;
+          const data = JSON.parse(json);
+
+          // Basic validation to check if it looks like our backup
+          if (
+            !data.expenses &&
+            !data.categories &&
+            !data.reminders &&
+            !data.settings &&
+            !data.savingsTransactions
+          ) {
+            throw new Error("Invalid backup file format");
+          }
+
+          await importData(data);
+          toast({
+            title: "Data imported successfully!",
+            description: "Your dashboard has been updated.",
+          });
+          fetchData(); // Refresh current page data
+          // Optional: Force a hard reload if deep state needs it,
+          // but fetchData + db events should handle most cases.
+        } catch (error) {
+          console.error("Import error:", error);
+          toast({
+            title: "Failed to import data.",
+            description: "The file might be corrupted or invalid.",
+            variant: "destructive",
+          });
+        }
+      };
+      reader.readAsText(file);
+    };
+
+    input.click();
+  };
+
+  const handleExportPdf = async () => {
+    try {
+      const [expenses, savingsTransactions] = await Promise.all([
+        getExpenses(),
+        getSavingsTransactions(),
+      ]);
+
+      const incomeList = expenses.filter((e) => e.type === "income");
+      const expenseList = expenses.filter((e) => e.type !== "income");
+
+      if (
+        incomeList.length === 0 &&
+        expenseList.length === 0 &&
+        savingsTransactions.length === 0
+      ) {
+        toast({ title: "No data to export.", variant: "destructive" });
+        return;
+      }
+
+      const doc = new jsPDF();
+      let lastY = 35;
+
+      // Title
+      doc.setFontSize(22);
+      doc.setTextColor(34, 197, 94); // Green color
+      doc.text("VerdantView Financial Report", 14, 20);
+
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.text(`Generated on: ${format(new Date(), "PPP")}`, 14, 28);
+      doc.setTextColor(0); // Reset color
+
+      const formatCurrency = (amount: number) =>
+        new Intl.NumberFormat("en-IN", {
+          style: "currency",
+          currency: "INR",
+        }).format(amount);
+
+      // --- SECTION 1: INCOME ---
+      if (incomeList.length > 0) {
+        doc.setFontSize(14);
+        doc.text("Income", 14, lastY);
+        lastY += 5;
+
+        const tableColumn = ["Date", "Title", "Category", "Mode", "Amount"];
+        const tableRows = incomeList.map((item) => [
+          format(new Date(item.date), "yyyy-MM-dd"),
+          item.title,
+          item.category,
+          item.paymentMode,
+          formatCurrency(item.amount),
+        ]);
+
+        const totalIncome = incomeList.reduce(
+          (sum, item) => sum + item.amount,
+          0
+        );
+
+        doc.autoTable({
+          startY: lastY,
+          head: [tableColumn],
+          body: tableRows,
+          foot: [["", "", "", "Total Income", formatCurrency(totalIncome)]],
+          theme: "striped",
+          headStyles: { fillColor: [40, 167, 69] }, // Green header
+          footStyles: {
+            fontStyle: "bold",
+            fillColor: [240, 240, 240],
+            textColor: 0,
+          },
+        });
+
+        lastY = (doc as any).lastAutoTable.finalY + 15;
+      }
+
+      // --- SECTION 2: EXPENSES ---
+      if (expenseList.length > 0) {
+        doc.setFontSize(14);
+        doc.text("Expenses", 14, lastY);
+        lastY += 5;
+
+        const tableColumn = ["Date", "Title", "Category", "Mode", "Amount"];
+        const tableRows = expenseList.map((item) => [
+          format(new Date(item.date), "yyyy-MM-dd"),
+          item.title,
+          item.category,
+          item.paymentMode,
+          formatCurrency(item.amount),
+        ]);
+
+        const totalExpenses = expenseList.reduce(
+          (sum, item) => sum + item.amount,
+          0
+        );
+
+        doc.autoTable({
+          startY: lastY,
+          head: [tableColumn],
+          body: tableRows,
+          foot: [["", "", "", "Total Expenses", formatCurrency(totalExpenses)]],
+          theme: "striped",
+          headStyles: { fillColor: [220, 53, 69] }, // Red header
+          footStyles: {
+            fontStyle: "bold",
+            fillColor: [240, 240, 240],
+            textColor: 0,
+          },
+        });
+
+        lastY = (doc as any).lastAutoTable.finalY + 15;
+      }
+
+      // --- SECTION 3: SAVINGS TRANSACTIONS ---
+      if (savingsTransactions.length > 0) {
+        doc.setFontSize(14);
+        doc.text("Savings History", 14, lastY);
+        lastY += 5;
+
+        const tableColumn = ["Date", "Type", "Note", "Amount"];
+        const tableRows = savingsTransactions.map((item) => [
+          format(new Date(item.date), "yyyy-MM-dd"),
+          item.type.replace("_", " ").toUpperCase(),
+          item.note || "-",
+          formatCurrency(item.amount),
+        ]);
+
+        doc.autoTable({
+          startY: lastY,
+          head: [tableColumn],
+          body: tableRows,
+          theme: "striped",
+          headStyles: { fillColor: [0, 123, 255] }, // Blue header
+        });
+
+        lastY = (doc as any).lastAutoTable.finalY + 15;
+      }
+
+      // --- SUMMARY ---
+      // Optional: Add a small summary section if needed, but the totals in tables might be enough.
+
+      doc.save(
+        `verdantview-report-${new Date().toISOString().split("T")[0]}.pdf`
+      );
+      toast({ title: "PDF exported successfully!" });
+    } catch (error) {
+      toast({ title: "Failed to export PDF.", variant: "destructive" });
+      console.error("PDF Export Error: ", error);
+    }
+  };
+
+  const handleClearData = async () => {
+    try {
+      await clearAllData();
+      toast({ title: "All data has been cleared." });
+      fetchData(); // Refresh UI
+    } catch (error) {
+      toast({ title: "Failed to clear data.", variant: "destructive" });
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-8 pb-20">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold">Settings</h1>
+          <p className="text-muted-foreground">
+            Manage your preferences and application data.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid gap-8">
+        {/* SECTION: GENERAL PREFERENCES */}
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <User className="h-5 w-5" /> General Preferences
+          </h2>
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Profile Name */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Profile Name</CardTitle>
+                <CardDescription>
+                  Your name as displayed on the dashboard.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Form {...nameForm}>
+                  <form
+                    onSubmit={nameForm.handleSubmit(handleUpdateName)}
+                    className="flex gap-3"
+                  >
+                    <FormField
+                      control={nameForm.control}
+                      name="userName"
+                      render={({ field }) => (
+                        <FormItem className="flex-grow space-y-0">
+                          <FormControl>
+                            <Input placeholder="Alex" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Button
+                      type="submit"
+                      disabled={nameForm.formState.isSubmitting}
+                      size="icon"
+                      variant="default"
+                    >
+                      {nameForm.formState.isSubmitting ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Save className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </form>
+                </Form>
+              </CardContent>
+            </Card>
+
+            {/* Monthly Budget */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Monthly Budget</CardTitle>
+                <CardDescription>
+                  Set your monthly spending limit target.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Form {...budgetForm}>
+                  <form
+                    onSubmit={budgetForm.handleSubmit(handleUpdateBudget)}
+                    className="flex gap-3"
+                  >
+                    <FormField
+                      control={budgetForm.control}
+                      name="monthlyBudget"
+                      render={({ field }) => (
+                        <FormItem className="flex-grow space-y-0">
+                          <FormControl>
+                            <Input
+                              type="number"
+                              placeholder="50000"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Button
+                      type="submit"
+                      disabled={budgetForm.formState.isSubmitting}
+                      size="icon"
+                      variant="default"
+                    >
+                      {budgetForm.formState.isSubmitting ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Save className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </form>
+                </Form>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* SECTION: CATEGORIES */}
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <Tags className="h-5 w-5" /> Categories
+          </h2>
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Manage Categories</CardTitle>
+              <CardDescription>
+                Customize your expense categories to better track your spending
+                habits.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-8">
+              {/* Add New Category */}
+              <div className="p-4 rounded-lg bg-muted/50 border border-border/50">
+                <Form {...categoryForm}>
+                  <form
+                    onSubmit={categoryForm.handleSubmit(handleAddCategory)}
+                    className="flex flex-col sm:flex-row gap-3 items-end sm:items-center"
+                  >
+                    <FormField
+                      control={categoryForm.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem className="flex-grow space-y-1.5 w-full">
+                          <FormLabel className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                            Add New Category
+                          </FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Input
+                                placeholder="e.g. Subscriptions, Hobbies"
+                                className="bg-background"
+                                {...field}
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Button
+                      type="submit"
+                      disabled={categoryForm.formState.isSubmitting}
+                      className="w-full sm:w-auto shrink-0"
+                    >
+                      {categoryForm.formState.isSubmitting ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Plus className="h-4 w-4 mr-2" />
+                      )}
+                      Add
+                    </Button>
+                  </form>
+                </Form>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-8">
+                {/* Default Categories Column */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 pb-2 border-b">
+                    <div className="h-2 w-2 rounded-full bg-primary/50" />
+                    <h4 className="text-sm font-medium">System Categories</h4>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {categories
+                      .filter((cat) => defaultCategories.includes(cat.name))
+                      .map((cat) => (
+                        <Badge
+                          key={cat.id || cat.name}
+                          variant="outline"
+                          className="px-3 py-1.5 text-sm font-normal bg-background/50 hover:bg-background cursor-default text-muted-foreground"
+                        >
+                          {cat.name}
+                        </Badge>
+                      ))}
+                  </div>
+                </div>
+
+                {/* Custom Categories Column */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 pb-2 border-b">
+                    <div className="h-2 w-2 rounded-full bg-indigo-500" />
+                    <h4 className="text-sm font-medium">Your Categories</h4>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {categories.filter(
+                      (cat) => !defaultCategories.includes(cat.name)
+                    ).length > 0 ? (
+                      categories
+                        .filter((cat) => !defaultCategories.includes(cat.name))
+                        .map((cat) => (
+                          <Badge
+                            key={cat.id}
+                            variant="secondary"
+                            className="pl-3 pr-1 py-1 text-sm font-medium gap-1 hover:bg-secondary/80 transition-all group"
+                          >
+                            {cat.name}
+                            {cat.id && (
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <button className="ml-1 rounded-full p-1 text-muted-foreground/50 hover:bg-destructive hover:text-destructive-foreground transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                                    <X className="h-3 w-3" />
+                                    <span className="sr-only">Delete</span>
+                                  </button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>
+                                      Delete &quot;{cat.name}&quot;?
+                                    </AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure? This category will be
+                                      removed from selection options, but
+                                      existing expenses will remain.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>
+                                      Cancel
+                                    </AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() =>
+                                        cat.id &&
+                                        handleDeleteCategory(cat.id, cat.name)
+                                      }
+                                      className="bg-destructive hover:bg-destructive/90"
+                                    >
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            )}
+                          </Badge>
+                        ))
+                    ) : (
+                      <div className="text-sm text-muted-foreground italic py-2">
+                        No custom categories added yet.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Separator />
+
+        {/* SECTION: DATA & BACKUP */}
+        <div className="space-y-6">
+          <div className="flex items-center gap-3 pb-2 ">
+            <div className="p-2 bg-indigo-500/10 rounded-lg text-indigo-600 dark:text-indigo-400">
+              <Database className="h-6 w-6" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-foreground">
+                Data Management
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Control your digital footprint and data portability.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Backup & Restore Card */}
+            <Card className="overflow-hidden border-indigo-100 dark:border-indigo-900/50 shadow-md transition-all hover:shadow-lg group">
+              <div className="h-1.5 w-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
+              <CardHeader>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-2.5 bg-indigo-50 dark:bg-indigo-950/40 rounded-xl text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform">
+                    <FileJson className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">Backup & Restore</CardTitle>
+                    <CardDescription className="text-xs">
+                      JSON Format
+                    </CardDescription>
+                  </div>
+                </div>
+                <CardDescription className="text-sm/relaxed leading-normal">
+                  Securely save your entire financial history to a file. Use
+                  this to migrate to a new device.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    onClick={handleExport}
+                    variant="outline"
+                    className="h-auto py-4 flex flex-col gap-2  dark:border-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 hover:text-indigo-600 hover:border-indigo-300 transition-all"
+                  >
+                    <Download className="h-5 w-5" />
+                    <div className="flex flex-col items-center">
+                      <span className="text-xs font-bold">Export Data</span>
+                      <span className="text-[10px] text-muted-foreground font-normal">
+                        Save to device
+                      </span>
+                    </div>
+                  </Button>
+                  <Button
+                    onClick={handleImport}
+                    variant="outline"
+                    className="h-auto py-4 flex flex-col gap-2  dark:border-purple-800 hover:bg-purple-50 dark:hover:bg-purple-950/30 hover:text-purple-600 hover:border-purple-300 transition-all"
+                  >
+                    <Upload className="h-5 w-5" />
+                    <div className="flex flex-col items-center">
+                      <span className="text-xs font-bold">Import Data</span>
+                      <span className="text-[10px] text-muted-foreground font-normal">
+                        Restore from file
+                      </span>
+                    </div>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Reports Card */}
+            <Card className="overflow-hidden border-emerald-100 dark:border-emerald-900/50 shadow-md transition-all hover:shadow-lg group">
+              <div className="h-1.5 w-full bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500" />
+              <CardHeader>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform">
+                    <FileText className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">Financial Reports</CardTitle>
+                    <CardDescription className="text-xs">
+                      PDF Format
+                    </CardDescription>
+                  </div>
+                </div>
+                <CardDescription className="text-sm/relaxed leading-normal">
+                  Generate professional PDF reports of your income, expenses,
+                  and savings for your records.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  onClick={handleExportPdf}
+                  className="w-full h-auto py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 transition-all"
+                >
+                  <div className="flex items-center gap-2">
+                    <Download className="h-5 w-5" />
+                    <span className="font-semibold">Download PDF Report</span>
+                  </div>
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Danger Zone */}
+          <Card className="border-destructive/20 bg-destructive/5 overflow-hidden">
+            <CardHeader>
+              <div className="flex items-center gap-2 text-destructive">
+                <div className="p-2 bg-destructive/10 rounded-full">
+                  <AlertTriangle className="w-5 h-5" />
+                </div>
+                <CardTitle className="text-base">Danger Zone</CardTitle>
+              </div>
+              <CardDescription>
+                Irreversible actions. Tread carefully.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-lg border border-destructive/10 bg-background/50">
+                <div className="space-y-1">
+                  <h4 className="text-sm font-medium">Delete all data</h4>
+                  <p className="text-xs text-muted-foreground max-w-[300px]">
+                    Permanently remove all expenses, settings, and categories
+                    from this device.
+                  </p>
+                </div>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="destructive"
+                      className="shrink-0 w-full sm:w-auto hover:bg-red-600"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" /> Clear All Data
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>
+                        Are you absolutely sure?
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action cannot be undone. This will permanently
+                        delete all your:
+                        <ul className="list-disc list-inside mt-2 ml-2">
+                          <li>Expenses and Income records</li>
+                          <li>Custom Categories</li>
+                          <li>Budget and Savings settings</li>
+                        </ul>
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleClearData}
+                        className="bg-destructive hover:bg-destructive/90"
+                      >
+                        Yes, Delete Everything
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      <div className="mt-12 text-center text-xs text-muted-foreground pb-8">
+        VerdantView v1.0.0 • Offline-First Personal Finance
+      </div>
+    </div>
+  );
+}
