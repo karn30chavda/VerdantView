@@ -27,13 +27,27 @@ import {
   AlertCircle,
   Plus,
   History,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   getSettings,
   updateSettings,
   getSavingsTransactions,
   addSavingsTransaction,
+  updateSavingsTransaction,
+  deleteSavingsTransaction,
 } from "@/lib/db";
 import { AppSettings, SavingsTransaction } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
@@ -51,6 +65,17 @@ export default function SavingsPage() {
   const [amountToAdd, setAmountToAdd] = useState("");
   const [isEditGoalOpen, setIsEditGoalOpen] = useState(false);
   const [newGoal, setNewGoal] = useState("");
+
+  // Edit transaction states
+  const [isEditTransactionOpen, setIsEditTransactionOpen] = useState(false);
+  const [transactionToEdit, setTransactionToEdit] =
+    useState<SavingsTransaction | null>(null);
+  const [editAmount, setEditAmount] = useState("");
+
+  // Delete confirmation states
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [transactionToDelete, setTransactionToDelete] =
+    useState<SavingsTransaction | null>(null);
 
   const fetchData = async () => {
     try {
@@ -128,6 +153,58 @@ export default function SavingsPage() {
       setNewGoal("");
     } catch (e) {
       toast({ title: "Failed to update goal", variant: "destructive" });
+    }
+  };
+
+  const handleEditTransaction = async () => {
+    if (
+      !settings ||
+      !transactionToEdit ||
+      !editAmount ||
+      isNaN(Number(editAmount))
+    )
+      return;
+
+    const newAmount = Number(editAmount);
+    const oldAmount = transactionToEdit.amount;
+    const difference = newAmount - oldAmount;
+    const newCurrent = (settings.emergencyFundCurrent || 0) + difference;
+
+    try {
+      await updateSavingsTransaction({
+        ...transactionToEdit,
+        amount: newAmount,
+      });
+      await updateSettings({ emergencyFundCurrent: newCurrent });
+
+      setSettings({ ...settings, emergencyFundCurrent: newCurrent });
+      toast({ title: "Transaction updated successfully!" });
+      setIsEditTransactionOpen(false);
+      setTransactionToEdit(null);
+      setEditAmount("");
+      fetchData();
+    } catch (e) {
+      toast({ title: "Failed to update transaction", variant: "destructive" });
+    }
+  };
+
+  const handleDeleteTransaction = async () => {
+    if (!settings || !transactionToDelete) return;
+
+    const newCurrent =
+      (settings.emergencyFundCurrent || 0) - transactionToDelete.amount;
+
+    try {
+      await deleteSavingsTransaction(transactionToDelete.id!);
+      await updateSettings({ emergencyFundCurrent: newCurrent });
+
+      setSettings({ ...settings, emergencyFundCurrent: newCurrent });
+      toast({ title: "Transaction deleted successfully!" });
+      setIsDeleteOpen(false);
+      setTransactionToDelete(null);
+      fetchData();
+    } catch (e) {
+      toast({ title: "Failed to delete transaction", variant: "destructive" });
     }
   };
 
@@ -318,7 +395,7 @@ export default function SavingsPage() {
                     key={tx.id}
                     className="flex items-center justify-between border-b pb-2 last:border-0 last:pb-0"
                   >
-                    <div>
+                    <div className="flex-1">
                       <p className="font-medium text-sm">
                         {tx.type === "deposit" ? "Added Funds" : "Transaction"}
                       </p>
@@ -326,14 +403,39 @@ export default function SavingsPage() {
                         {format(new Date(tx.date), "PPP")}
                       </p>
                     </div>
-                    <span className="font-bold text-emerald-600">
-                      +
-                      {new Intl.NumberFormat("en-IN", {
-                        style: "currency",
-                        currency: "INR",
-                        maximumFractionDigits: 0,
-                      }).format(tx.amount)}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-emerald-600">
+                        +
+                        {new Intl.NumberFormat("en-IN", {
+                          style: "currency",
+                          currency: "INR",
+                          maximumFractionDigits: 0,
+                        }).format(tx.amount)}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        onClick={() => {
+                          setTransactionToEdit(tx);
+                          setEditAmount(String(tx.amount));
+                          setIsEditTransactionOpen(true);
+                        }}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        onClick={() => {
+                          setTransactionToDelete(tx);
+                          setIsDeleteOpen(true);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -345,6 +447,83 @@ export default function SavingsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Edit Transaction Dialog */}
+      <Dialog
+        open={isEditTransactionOpen}
+        onOpenChange={setIsEditTransactionOpen}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Transaction</DialogTitle>
+            <DialogDescription>
+              Update the amount for this transaction.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-4 py-4">
+            <Input
+              type="number"
+              placeholder="Amount"
+              value={editAmount}
+              onChange={(e) => setEditAmount(e.target.value)}
+            />
+          </div>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsEditTransactionOpen(false);
+                setTransactionToEdit(null);
+                setEditAmount("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleEditTransaction}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              Update
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Transaction</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this transaction? This will
+              subtract{" "}
+              {transactionToDelete &&
+                new Intl.NumberFormat("en-IN", {
+                  style: "currency",
+                  currency: "INR",
+                  maximumFractionDigits: 0,
+                }).format(transactionToDelete.amount)}{" "}
+              from your emergency fund. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                setIsDeleteOpen(false);
+                setTransactionToDelete(null);
+              }}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteTransaction}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
