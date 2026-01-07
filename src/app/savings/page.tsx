@@ -83,12 +83,20 @@ export default function SavingsPage() {
         getSettings(),
         getSavingsTransactions(),
       ]);
-      setSettings(data);
+
       // Sort transactions by date descending
-      setTransactions(
-        txs.sort(
-          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-        )
+      const sortedTxs = txs.sort(
+        (
+          a: { date: string | number | Date },
+          b: { date: string | number | Date }
+        ) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
+      setTransactions(sortedTxs);
+
+      // ✨ FIX: Calculate actual total from all transactions
+      const calculatedTotal = txs.reduce(
+        (sum: number, tx: SavingsTransaction) => sum + tx.amount,
+        0
       );
 
       // Initialize if missing
@@ -100,10 +108,22 @@ export default function SavingsPage() {
         const updated = {
           ...data,
           emergencyFundGoal: data.emergencyFundGoal ?? 50000,
-          emergencyFundCurrent: data.emergencyFundCurrent ?? 0,
+          emergencyFundCurrent: calculatedTotal, // Use calculated total
         };
         await updateSettings(updated);
         setSettings(updated);
+      } else if (data) {
+        // ✨ FIX: Always sync the total with actual transactions
+        if (data.emergencyFundCurrent !== calculatedTotal) {
+          const updated = {
+            ...data,
+            emergencyFundCurrent: calculatedTotal,
+          };
+          await updateSettings(updated);
+          setSettings(updated);
+        } else {
+          setSettings(data);
+        }
       }
     } catch (error) {
       console.error("Failed to load settings", error);
@@ -166,18 +186,25 @@ export default function SavingsPage() {
       return;
 
     const newAmount = Number(editAmount);
-    const oldAmount = transactionToEdit.amount;
-    const difference = newAmount - oldAmount;
-    const newCurrent = (settings.emergencyFundCurrent || 0) + difference;
 
     try {
+      // Update the transaction
       await updateSavingsTransaction({
         ...transactionToEdit,
         amount: newAmount,
       });
-      await updateSettings({ emergencyFundCurrent: newCurrent });
 
-      setSettings({ ...settings, emergencyFundCurrent: newCurrent });
+      // ✨ FIX: Recalculate total from all transactions
+      const allTransactions = await getSavingsTransactions();
+      const newTotal = allTransactions.reduce(
+        (sum: number, tx: SavingsTransaction) =>
+          tx.id === transactionToEdit.id ? sum + newAmount : sum + tx.amount,
+        0
+      );
+
+      await updateSettings({ emergencyFundCurrent: newTotal });
+      setSettings({ ...settings, emergencyFundCurrent: newTotal });
+
       toast({ title: "Transaction updated successfully!" });
       setIsEditTransactionOpen(false);
       setTransactionToEdit(null);
@@ -191,14 +218,20 @@ export default function SavingsPage() {
   const handleDeleteTransaction = async () => {
     if (!settings || !transactionToDelete) return;
 
-    const newCurrent =
-      (settings.emergencyFundCurrent || 0) - transactionToDelete.amount;
-
     try {
+      // Delete the transaction
       await deleteSavingsTransaction(transactionToDelete.id!);
-      await updateSettings({ emergencyFundCurrent: newCurrent });
 
-      setSettings({ ...settings, emergencyFundCurrent: newCurrent });
+      // ✨ FIX: Recalculate total from remaining transactions
+      const remainingTransactions = await getSavingsTransactions();
+      const newTotal = remainingTransactions.reduce(
+        (sum: number, tx: SavingsTransaction) => sum + tx.amount,
+        0
+      );
+
+      await updateSettings({ emergencyFundCurrent: newTotal });
+      setSettings({ ...settings, emergencyFundCurrent: newTotal });
+
       toast({ title: "Transaction deleted successfully!" });
       setIsDeleteOpen(false);
       setTransactionToDelete(null);
