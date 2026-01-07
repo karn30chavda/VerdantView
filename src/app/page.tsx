@@ -28,7 +28,7 @@ import {
   startOfYear,
   endOfYear,
 } from "date-fns";
-import { useExpenses } from "@/hooks/use-expenses";
+import { useExpenses } from "@/features/expenses/hooks";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -60,10 +60,10 @@ export default function DashboardPage() {
         const now = new Date();
         const upcoming = fetchedReminders
           .filter(
-            (r) => new Date(r.date) >= new Date(new Date().setHours(0, 0, 0, 0))
+            (r: { date: string | number | Date; }) => new Date(r.date) >= new Date(new Date().setHours(0, 0, 0, 0))
           )
           .sort(
-            (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+            (a: { date: string | number | Date; }, b: { date: string | number | Date; }) => new Date(a.date).getTime() - new Date(b.date).getTime()
           )
           .slice(0, 3); // Take top 3
 

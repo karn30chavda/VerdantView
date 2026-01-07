@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { useExpenses } from "@/hooks/use-expenses";
+import { useExpenses } from "@/features/expenses/hooks";
 import {
   Loader2,
   Upload,

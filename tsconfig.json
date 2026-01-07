@@ -23,9 +23,15 @@
       }
     ],
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
+      "@/*": ["./src/*"],
+      "@/components/*": ["./src/components/*"],
+      "@/features/*": ["./src/features/*"],
+      "@/hooks/*": ["./src/hooks/*"],
+      "@/lib/*": ["./src/lib/*"],
+      "@/services/*": ["./src/services/*"],
+      "@/ai/*": ["./src/ai/*"],
+      "@/config/*": ["./src/config/*"],
+      "@/types/*": ["./src/lib/types/*"]
     }
   },
   "include": [

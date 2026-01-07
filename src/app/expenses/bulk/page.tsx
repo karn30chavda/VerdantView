@@ -1,4 +1,4 @@
-import { BulkExpenseForm } from "@/components/bulk-add-expenses";
+import { BulkExpenseForm } from "@/components/forms";
 
 export default function BulkAddPage() {
   return (

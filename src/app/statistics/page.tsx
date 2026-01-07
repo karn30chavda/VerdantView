@@ -1,6 +1,6 @@
 "use client";
 
-import { useExpenses } from "@/hooks/use-expenses";
+import { useExpenses } from "@/features/expenses/hooks";
 import {
   Card,
   CardContent,

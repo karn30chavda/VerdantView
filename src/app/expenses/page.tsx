@@ -55,10 +55,10 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 
-import { useExpenses as useExpensesData } from "@/hooks/use-expenses";
+import { useExpenses as useExpensesData } from "@/features/expenses/hooks";
 import type { Expense } from "@/lib/types";
 import { deleteExpense } from "@/lib/db";
-import { ExpenseForm } from "@/components/expense-form";
+import { ExpenseForm } from "@/components/forms";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 

@@ -20,7 +20,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Trash2, Plus, Save, Loader2, ArrowLeft } from "lucide-react";
-import { useExpenses } from "@/hooks/use-expenses";
+import { useExpenses } from "@/features/expenses/hooks";
 import { useToast } from "@/hooks/use-toast";
 import type { Expense } from "@/lib/types";
 
