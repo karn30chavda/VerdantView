@@ -1,12 +1,16 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { ExpenseForm } from '@/components/expense-form';
-import { getExpenses } from '@/lib/db';
-import type { Expense } from '@/lib/types';
-import { Skeleton } from '@/components/ui/skeleton';
+import { useState, useEffect } from "react";
+import { ExpenseForm } from "@/components/forms";
+import { getExpenses } from "@/lib/db";
+import type { Expense } from "@/lib/types";
+import { Skeleton } from "@/components/ui/skeleton";
 
-export default function EditExpensePage({ params }: { params: { id: string } }) {
+export default function EditExpensePage({
+  params,
+}: {
+  params: { id: string };
+}) {
   const [expense, setExpense] = useState<Expense | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -15,14 +19,16 @@ export default function EditExpensePage({ params }: { params: { id: string } }) 
     async function fetchExpense() {
       try {
         const allExpenses = await getExpenses();
-        const foundExpense = allExpenses.find(e => e.id === Number(params.id));
+        const foundExpense = allExpenses.find(
+          (e) => e.id === Number(params.id)
+        );
         if (foundExpense) {
           setExpense(foundExpense);
         } else {
-          setError('Expense not found.');
+          setError("Expense not found.");
         }
       } catch (err) {
-        setError('Failed to fetch expense data.');
+        setError("Failed to fetch expense data.");
       } finally {
         setLoading(false);
       }
