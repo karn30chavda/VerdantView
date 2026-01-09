@@ -44,7 +44,8 @@ export function useExpenses() {
       ]);
       setExpenses(
         fetchedExpenses.sort(
-          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+          (a: Expense, b: Expense) =>
+            new Date(b.date).getTime() - new Date(a.date).getTime()
         )
       );
       setCategories(fetchedCategories);
@@ -103,41 +104,38 @@ export function useExpenses() {
     ) => {
       const filtered = interval
         ? items.filter((e) => isWithinInterval(new Date(e.date), interval))
-        : items.filter((e) => isToday(new Date(e.date))); // Default to today if no interval?? No, logic below uses specific intervals
+        : items.filter((e) => isToday(new Date(e.date)));
       return filtered.reduce((sum, e) => sum + e.amount, 0);
     };
 
     const intervals = {
-      today: null, // Logic handled below
+      today: null,
       week: { start: startOfWeek(now), end: endOfWeek(now) },
       month: { start: startOfMonth(now), end: endOfMonth(now) },
       year: { start: startOfYear(now), end: endOfYear(now) },
     };
 
-    // Helper specific for the existing structure
-    // For expenses, filter out items with excludeFromBudget = true
-    const getSums = (items: Expense[], isExpense: boolean = false) => ({
+    const calculatePeriodSums = (items: Expense[]) => ({
       today: items
         .filter((e) => isToday(new Date(e.date)))
-        .filter((e) => !isExpense || !e.excludeFromBudget) // Exclude from budget if flagged
         .reduce((sum, e) => sum + e.amount, 0),
       week: items
         .filter((e) => isWithinInterval(new Date(e.date), intervals.week))
-        .filter((e) => !isExpense || !e.excludeFromBudget) // Exclude from budget if flagged
         .reduce((sum, e) => sum + e.amount, 0),
       month: items
         .filter((e) => isWithinInterval(new Date(e.date), intervals.month))
-        .filter((e) => !isExpense || !e.excludeFromBudget) // Exclude from budget if flagged
         .reduce((sum, e) => sum + e.amount, 0),
       year: items
         .filter((e) => isWithinInterval(new Date(e.date), intervals.year))
-        .filter((e) => !isExpense || !e.excludeFromBudget) // Exclude from budget if flagged
         .reduce((sum, e) => sum + e.amount, 0),
     });
 
+    const budgetableExpenses = expenseItems.filter((e) => !e.excludeFromBudget);
+
     return {
-      income: getSums(incomeItems, false),
-      expense: getSums(expenseItems, true), // Pass true to indicate these are expenses
+      income: calculatePeriodSums(incomeItems),
+      expense: calculatePeriodSums(expenseItems), // Total expenses including excluded ones
+      budgetExpense: calculatePeriodSums(budgetableExpenses), // Only expenses counting towards budget
     };
   }, [expenses]);
 

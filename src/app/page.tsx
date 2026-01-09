@@ -60,10 +60,14 @@ export default function DashboardPage() {
         const now = new Date();
         const upcoming = fetchedReminders
           .filter(
-            (r: { date: string | number | Date; }) => new Date(r.date) >= new Date(new Date().setHours(0, 0, 0, 0))
+            (r: { date: string | number | Date }) =>
+              new Date(r.date) >= new Date(new Date().setHours(0, 0, 0, 0))
           )
           .sort(
-            (a: { date: string | number | Date; }, b: { date: string | number | Date; }) => new Date(a.date).getTime() - new Date(b.date).getTime()
+            (
+              a: { date: string | number | Date },
+              b: { date: string | number | Date }
+            ) => new Date(a.date).getTime() - new Date(b.date).getTime()
           )
           .slice(0, 3); // Take top 3
 
@@ -212,7 +216,7 @@ export default function DashboardPage() {
             <div className="flex justify-between items-end">
               <div>
                 <span className="text-2xl font-bold text-blue-700 dark:text-blue-400">
-                  {formatCurrency(summaries.expense?.month || 0)}
+                  {formatCurrency(summaries.budgetExpense?.month || 0)}
                 </span>
                 <span className="text-sm text-blue-600/80 dark:text-blue-400/80 ml-1">
                   spent
@@ -226,21 +230,21 @@ export default function DashboardPage() {
             </div>
             <Progress
               value={Math.min(
-                ((summaries.expense?.month || 0) / monthlyBudget) * 100,
+                ((summaries.budgetExpense?.month || 0) / monthlyBudget) * 100,
                 100
               )}
               className="h-2.5 bg-blue-200 dark:bg-blue-800"
               indicatorClassName={`${
-                (summaries.expense?.month || 0) > monthlyBudget
+                (summaries.budgetExpense?.month || 0) > monthlyBudget
                   ? "bg-red-500"
                   : "bg-blue-500"
               }`}
             />
             <p className="text-xs text-blue-600 dark:text-blue-400">
-              {(summaries.expense?.month || 0) > monthlyBudget
+              {(summaries.budgetExpense?.month || 0) > monthlyBudget
                 ? "You have exceeded your monthly budget!"
                 : `${(
-                    ((summaries.expense?.month || 0) / monthlyBudget) *
+                    ((summaries.budgetExpense?.month || 0) / monthlyBudget) *
                     100
                   ).toFixed(0)}% used`}
             </p>
