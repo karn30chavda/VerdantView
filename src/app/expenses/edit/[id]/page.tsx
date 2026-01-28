@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { ExpenseForm } from "@/components/forms";
 import { getExpenses } from "@/lib/db";
 import type { Expense } from "@/lib/types";
@@ -9,8 +9,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function EditExpensePage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = use(params);
   const [expense, setExpense] = useState<Expense | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -19,9 +20,7 @@ export default function EditExpensePage({
     async function fetchExpense() {
       try {
         const allExpenses = await getExpenses();
-        const foundExpense = allExpenses.find(
-          (e) => e.id === Number(params.id)
-        );
+        const foundExpense = allExpenses.find((e) => e.id === Number(id));
         if (foundExpense) {
           setExpense(foundExpense);
         } else {
@@ -34,7 +33,7 @@ export default function EditExpensePage({
       }
     }
     fetchExpense();
-  }, [params.id]);
+  }, [id]);
 
   return (
     <div className="max-w-2xl mx-auto">

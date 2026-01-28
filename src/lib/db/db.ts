@@ -6,11 +6,13 @@ import type {
   Reminder,
   AppSettings,
   SavingsTransaction,
-} from "./types";
+  Trip,
+  TripExpense,
+} from "../types";
 import { startOfDay } from "date-fns";
 
 const DB_NAME = "VerdantViewDB";
-const DB_VERSION = 4; // Incremented for savings transactions
+const DB_VERSION = 5; // Incremented for trips and trip_expenses
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
@@ -85,6 +87,20 @@ function getDB(): Promise<IDBDatabase> {
           });
           savingsStore.createIndex("date", "date", { unique: false });
         }
+        if (!db.objectStoreNames.contains("trips")) {
+          const tripStore = db.createObjectStore("trips", {
+            keyPath: "id",
+            autoIncrement: true,
+          });
+          tripStore.createIndex("status", "status", { unique: false });
+        }
+        if (!db.objectStoreNames.contains("trip_expenses")) {
+          const tripExpenseStore = db.createObjectStore("trip_expenses", {
+            keyPath: "id",
+            autoIncrement: true,
+          });
+          tripExpenseStore.createIndex("tripId", "tripId", { unique: false });
+        }
       };
 
       request.onsuccess = (event) => {
@@ -118,7 +134,7 @@ async function populateInitialData(db: IDBDatabase): Promise<void> {
     catRequest.onsuccess = (e) => {
       const existingCategories = (e.target as IDBRequest<Category[]>).result;
       const existingCategoryNames = new Set(
-        existingCategories.map((c) => c.name)
+        existingCategories.map((c) => c.name),
       );
 
       let addedNew = false;
@@ -154,13 +170,20 @@ async function populateInitialData(db: IDBDatabase): Promise<void> {
 async function performDBOperation<T>(
   storeName: string,
   mode: IDBTransactionMode,
-  operation: (store: IDBObjectStore) => IDBRequest | IDBRequest<any[]>
+  operation: (store: IDBObjectStore) => IDBRequest | IDBRequest<any[]>,
 ): Promise<T> {
   const db = await getDB();
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(storeName, mode);
     const store = transaction.objectStore(storeName);
-    const request = operation(store);
+
+    let request: IDBRequest | IDBRequest<any[]>;
+    try {
+      request = operation(store);
+    } catch (err) {
+      reject(err);
+      return;
+    }
 
     transaction.oncomplete = () => {
       if (mode === "readwrite") {
@@ -178,7 +201,7 @@ async function performDBOperation<T>(
 export const getExpenses = (): Promise<Expense[]> =>
   performDBOperation("expenses", "readonly", (store) => store.getAll());
 export const addExpense = (
-  expense: Omit<Expense, "id">
+  expense: Omit<Expense, "id">,
 ): Promise<IDBValidKey> =>
   performDBOperation("expenses", "readwrite", (store) => store.add(expense));
 export const updateExpense = (expense: Expense): Promise<IDBValidKey> =>
@@ -190,7 +213,7 @@ export const deleteExpense = (id: number): Promise<void> =>
 export const getCategories = (): Promise<Category[]> =>
   performDBOperation("categories", "readonly", (store) => store.getAll());
 export const addCategory = (
-  category: Omit<Category, "id">
+  category: Omit<Category, "id">,
 ): Promise<IDBValidKey> =>
   performDBOperation("categories", "readwrite", (store) => store.add(category));
 export const deleteCategory = async (id: number): Promise<void> => {
@@ -224,7 +247,7 @@ export const deleteCategory = async (id: number): Promise<void> => {
 export const getReminders = (): Promise<Reminder[]> =>
   performDBOperation("reminders", "readonly", (store) => store.getAll());
 export const addReminder = (
-  reminder: Omit<Reminder, "id">
+  reminder: Omit<Reminder, "id">,
 ): Promise<IDBValidKey> =>
   performDBOperation("reminders", "readwrite", (store) => store.add(reminder));
 export const deleteReminder = (id: number): Promise<void> =>
@@ -275,7 +298,7 @@ export const clearOldReminders = async (): Promise<void> => {
     transaction.oncomplete = () => {
       if (deletedCount > 0 || updatedCount > 0) {
         console.log(
-          `Cleared ${deletedCount} old reminders, updated ${updatedCount} recurring reminders.`
+          `Cleared ${deletedCount} old reminders, updated ${updatedCount} recurring reminders.`,
         );
         dbEvents.dispatchEvent(new CustomEvent("dataChanged"));
       }
@@ -292,38 +315,81 @@ export const clearOldReminders = async (): Promise<void> => {
 export const getSettings = (): Promise<AppSettings> =>
   performDBOperation("settings", "readonly", (store) => store.get(1));
 export const updateSettings = async (
-  settings: Partial<AppSettings>
+  settings: Partial<AppSettings>,
 ): Promise<IDBValidKey> => {
   const existingSettings = await getSettings();
   return performDBOperation("settings", "readwrite", (store) =>
-    store.put({ ...existingSettings, ...settings, id: 1 })
+    store.put({ ...existingSettings, ...settings, id: 1 }),
   );
 };
 
 // Savings Transactions
 export const getSavingsTransactions = (): Promise<SavingsTransaction[]> =>
   performDBOperation("savings_transactions", "readonly", (store) =>
-    store.getAll()
+    store.getAll(),
   );
 
 export const addSavingsTransaction = (
-  transaction: Omit<SavingsTransaction, "id">
+  transaction: Omit<SavingsTransaction, "id">,
 ): Promise<IDBValidKey> =>
   performDBOperation("savings_transactions", "readwrite", (store) =>
-    store.add(transaction)
+    store.add(transaction),
   );
 
 export const updateSavingsTransaction = (
-  transaction: SavingsTransaction
+  transaction: SavingsTransaction,
 ): Promise<IDBValidKey> =>
   performDBOperation("savings_transactions", "readwrite", (store) =>
-    store.put(transaction)
+    store.put(transaction),
   );
 
 export const deleteSavingsTransaction = (id: number): Promise<void> =>
   performDBOperation("savings_transactions", "readwrite", (store) =>
-    store.delete(id)
+    store.delete(id),
   );
+
+// Trips
+export const getTrips = (): Promise<Trip[]> =>
+  performDBOperation("trips", "readonly", (store) => store.getAll());
+
+export const getTrip = (id: number): Promise<Trip> =>
+  performDBOperation("trips", "readonly", (store) => store.get(id));
+
+export const addTrip = (trip: Omit<Trip, "id">): Promise<IDBValidKey> =>
+  performDBOperation("trips", "readwrite", (store) => store.add(trip));
+
+export const updateTrip = (trip: Trip): Promise<IDBValidKey> =>
+  performDBOperation("trips", "readwrite", (store) => store.put(trip));
+
+export const deleteTrip = (id: number): Promise<void> =>
+  performDBOperation("trips", "readwrite", (store) => store.delete(id));
+
+// Trip Expenses
+export const getTripExpenses = (tripId: number): Promise<TripExpense[]> => {
+  return performDBOperation<TripExpense[]>(
+    "trip_expenses",
+    "readonly",
+    (store) => {
+      const index = store.index("tripId");
+      return index.getAll(tripId);
+    },
+  );
+};
+
+export const addTripExpense = (
+  expense: Omit<TripExpense, "id">,
+): Promise<IDBValidKey> =>
+  performDBOperation("trip_expenses", "readwrite", (store) =>
+    store.add(expense),
+  );
+
+export const updateTripExpense = (expense: TripExpense): Promise<IDBValidKey> =>
+  performDBOperation("trip_expenses", "readwrite", (store) =>
+    store.put(expense),
+  );
+
+export const deleteTripExpense = (id: number): Promise<void> =>
+  performDBOperation("trip_expenses", "readwrite", (store) => store.delete(id));
 
 // Data Management
 export const exportData = async () => {
@@ -332,7 +398,23 @@ export const exportData = async () => {
   const reminders = await getReminders();
   const settings = await getSettings();
   const savingsTransactions = await getSavingsTransactions();
-  return { expenses, categories, reminders, settings, savingsTransactions };
+  const trips = await getTrips();
+  const tripExpenses: TripExpense[] = [];
+  for (const trip of trips) {
+    if (trip.id) {
+      const expenses = await getTripExpenses(trip.id);
+      tripExpenses.push(...expenses);
+    }
+  }
+  return {
+    expenses,
+    categories,
+    reminders,
+    settings,
+    savingsTransactions,
+    trips,
+    trip_expenses: tripExpenses,
+  };
 };
 
 export const importData = async (data: {
@@ -349,6 +431,8 @@ export const importData = async (data: {
     "reminders",
     "settings",
     "savings_transactions",
+    "trips",
+    "trip_expenses",
   ];
   const tx = db.transaction(storeNames, "readwrite");
 
@@ -413,12 +497,77 @@ export const importData = async (data: {
 
     if (data.savingsTransactions) {
       const store = tx.objectStore("savings_transactions");
-      // Append transactions
       data.savingsTransactions.forEach((s) => {
         const { id, ...rest } = s;
         store.add(rest);
       });
     }
+
+    if ((data as any).trips) {
+      const tripStore = tx.objectStore("trips");
+      const expenseStore = tx.objectStore("trip_expenses");
+      const tripData = (data as any).trips as Trip[];
+      const expenseData = (data as any).trip_expenses as TripExpense[];
+
+      tripData.forEach((t) => {
+        const oldId = t.id;
+        const { id, ...rest } = t;
+        const addReq = tripStore.add(rest);
+        addReq.onsuccess = (e) => {
+          const newId = (e.target as IDBRequest).result as number;
+          if (expenseData && oldId) {
+            expenseData
+              .filter((ex) => ex.tripId === oldId)
+              .forEach((ex) => {
+                const { id, ...exRest } = ex;
+                exRest.tripId = newId;
+                expenseStore.add(exRest);
+              });
+          }
+        };
+      });
+    }
+  });
+};
+
+export const exportTrip = async (tripId: number) => {
+  const trip = await getTrip(tripId);
+  const expenses = await getTripExpenses(tripId);
+  return {
+    trip,
+    expenses,
+    version: "1.0",
+    exportedAt: new Date().toISOString(),
+  };
+};
+
+export const importTrip = async (data: {
+  trip: Trip;
+  expenses: TripExpense[];
+}) => {
+  const db = await getDB();
+  const tx = db.transaction(["trips", "trip_expenses"], "readwrite");
+
+  return new Promise<void>((resolve, reject) => {
+    tx.oncomplete = () => {
+      dbEvents.dispatchEvent(new CustomEvent("dataChanged"));
+      resolve();
+    };
+    tx.onerror = () => reject(tx.error);
+
+    const tripStore = tx.objectStore("trips");
+    const expenseStore = tx.objectStore("trip_expenses");
+
+    const { id: oldId, ...tripRest } = data.trip;
+    const addReq = tripStore.add(tripRest);
+    addReq.onsuccess = (e) => {
+      const newId = (e.target as IDBRequest).result as number;
+      data.expenses.forEach((ex) => {
+        const { id, ...exRest } = ex;
+        exRest.tripId = newId;
+        expenseStore.add(exRest);
+      });
+    };
   });
 };
 

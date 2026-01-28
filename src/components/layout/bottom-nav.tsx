@@ -49,20 +49,20 @@ export function BottomNav() {
                 "group flex flex-1 flex-col items-center justify-center gap-1 py-1 transition-colors duration-200",
                 isActive
                   ? "text-primary"
-                  : "text-muted-foreground hover:text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
               )}
             >
               <item.icon
                 className={cn(
                   "h-6 w-6 transition-transform duration-200",
-                  isActive && "scale-105"
+                  isActive && "scale-105",
                 )}
                 strokeWidth={isActive ? 2.5 : 2}
               />
               <span
                 className={cn(
                   "text-[10px] font-medium transition-colors",
-                  isActive ? "text-primary" : "text-muted-foreground"
+                  isActive ? "text-primary" : "text-muted-foreground",
                 )}
               >
                 {item.label}

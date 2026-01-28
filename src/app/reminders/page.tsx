@@ -77,7 +77,7 @@ async function scheduleReminderNotifications(title: string, date: Date) {
 
     // 1. Handle "Upcoming" notification (1 day before)
     const oneDayBefore = new Date(
-      dueDatePoints.getTime() - 24 * 60 * 60 * 1000
+      dueDatePoints.getTime() - 24 * 60 * 60 * 1000,
     );
 
     if (oneDayBefore.getTime() > now.getTime()) {
@@ -170,8 +170,8 @@ export default function RemindersPage() {
     const fetchedReminders = await getReminders();
     setReminders(
       fetchedReminders.sort(
-        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-      )
+        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+      ),
     );
     setLoading(false);
   }, []);
@@ -221,7 +221,7 @@ export default function RemindersPage() {
 
       if (notificationPermission === "granted") {
         scheduleReminderNotifications(values.title, values.date).catch((err) =>
-          console.error("Failed to schedule notification:", err)
+          console.error("Failed to schedule notification:", err),
         );
       }
 
@@ -335,10 +335,11 @@ export default function RemindersPage() {
                         <PopoverTrigger asChild>
                           <FormControl>
                             <Button
+                              type="button"
                               variant={"outline"}
                               className={cn(
                                 "w-full pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
+                                !field.value && "text-muted-foreground",
                               )}
                             >
                               {field.value ? (
@@ -491,7 +492,7 @@ export default function RemindersPage() {
                       className={cn(
                         "flex flex-col items-center justify-center h-14 w-14 rounded-xl font-bold text-xs shrink-0",
                         status.bg,
-                        status.color
+                        status.color,
                       )}
                     >
                       <span className="text-lg leading-none">

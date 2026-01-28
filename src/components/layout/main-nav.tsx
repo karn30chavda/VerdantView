@@ -11,6 +11,7 @@ import {
   PiggyBank,
   Bell,
   Settings,
+  Map as MapIcon,
 } from "lucide-react";
 
 const navLinks = [
@@ -19,6 +20,7 @@ const navLinks = [
   { href: "/statistics", label: "Stats", icon: PieChart },
   { href: "/scan", label: "Scan", icon: ScanLine },
   { href: "/savings", label: "Savings", icon: PiggyBank },
+  { href: "/trips", label: "Trips", icon: MapIcon },
   { href: "/reminders", label: "Reminders", icon: Bell },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
@@ -40,7 +42,7 @@ export function MainNav() {
               "relative flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ease-in-out",
               isActive
                 ? "text-primary-foreground bg-primary shadow-sm"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
             )}
           >
             <Icon className={cn("h-4 w-4", isActive && "stroke-[2.5px]")} />

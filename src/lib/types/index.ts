@@ -38,3 +38,20 @@ export interface SavingsTransaction {
   type: "deposit" | "withdrawal" | "goal_update";
   note?: string;
 }
+
+export interface Trip {
+  id?: number;
+  name: string;
+  members: string[];
+  createdAt: string;
+  status: "active" | "completed";
+}
+
+export interface TripExpense {
+  id?: number;
+  tripId: number;
+  payerName: string;
+  amount: number;
+  description: string;
+  date: string;
+}

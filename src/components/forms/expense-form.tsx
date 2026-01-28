@@ -357,14 +357,19 @@ export function ExpenseForm({ expense, onSave }: ExpenseFormProps) {
                       <PopoverTrigger asChild>
                         <FormControl>
                           <Button
+                            type="button"
                             variant={"outline"}
                             className={cn(
                               "pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
+                              !field.value && "text-muted-foreground",
                             )}
                           >
-                            {field.value ? (
+                            {field.value instanceof Date &&
+                            !isNaN(field.value.getTime()) ? (
                               format(field.value, "PPP")
+                            ) : field.value ? (
+                              // Fallback if it's somehow a string
+                              format(new Date(field.value), "PPP")
                             ) : (
                               <span>Pick a date</span>
                             )}
@@ -372,13 +377,20 @@ export function ExpenseForm({ expense, onSave }: ExpenseFormProps) {
                           </Button>
                         </FormControl>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
+                      <PopoverContent
+                        className="w-auto p-0"
+                        align="start"
+                        side="bottom"
+                        disablePortal
+                      >
                         <Calendar
                           mode="single"
                           selected={field.value}
                           onSelect={(date) => {
-                            field.onChange(date || new Date());
-                            setIsDatePickerOpen(false);
+                            if (date) {
+                              field.onChange(date);
+                              setIsDatePickerOpen(false);
+                            }
                           }}
                           disabled={(date) =>
                             date > new Date() || date < new Date("1900-01-01")
@@ -491,8 +503,8 @@ export function ExpenseForm({ expense, onSave }: ExpenseFormProps) {
               {expense
                 ? "Save Changes"
                 : currentType === "income"
-                ? "Add Income"
-                : "Add Expense"}
+                  ? "Add Income"
+                  : "Add Expense"}
             </Button>
           </form>
         </Form>

@@ -16,6 +16,7 @@ import {
   AlertCircle,
   Bell,
   Calendar,
+  Map as MapIcon,
 } from "lucide-react";
 import {
   format,
@@ -29,6 +30,7 @@ import {
   endOfYear,
 } from "date-fns";
 import { useExpenses } from "@/features/expenses/hooks";
+import { useTrips } from "@/features/trips/hooks";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -36,6 +38,7 @@ import { Progress } from "@/components/ui/progress";
 
 export default function DashboardPage() {
   const { expenses, summaries, loading, error } = useExpenses();
+  const { trips, loading: tripsLoading } = useTrips();
   const [timeRange, setTimeRange] = useState("today"); // Default to today
   const [userName, setUserName] = useState<string>("User");
   const [monthlyBudget, setMonthlyBudget] = useState<number>(0);
@@ -61,13 +64,13 @@ export default function DashboardPage() {
         const upcoming = fetchedReminders
           .filter(
             (r: { date: string | number | Date }) =>
-              new Date(r.date) >= new Date(new Date().setHours(0, 0, 0, 0))
+              new Date(r.date) >= new Date(new Date().setHours(0, 0, 0, 0)),
           )
           .sort(
             (
               a: { date: string | number | Date },
-              b: { date: string | number | Date }
-            ) => new Date(a.date).getTime() - new Date(b.date).getTime()
+              b: { date: string | number | Date },
+            ) => new Date(a.date).getTime() - new Date(b.date).getTime(),
           )
           .slice(0, 3); // Take top 3
 
@@ -231,7 +234,7 @@ export default function DashboardPage() {
             <Progress
               value={Math.min(
                 ((summaries.budgetExpense?.month || 0) / monthlyBudget) * 100,
-                100
+                100,
               )}
               className="h-2.5 bg-blue-200 dark:bg-blue-800"
               indicatorClassName={`${
@@ -318,6 +321,54 @@ export default function DashboardPage() {
         )}
       </div>
 
+      {/* Recent Trips Section */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Recent Trips</h2>
+          <Link href="/trips" className="text-sm font-medium text-primary">
+            See All
+          </Link>
+        </div>
+        {tripsLoading ? (
+          <div className="grid gap-3">
+            <Skeleton className="h-20 w-full rounded-xl" />
+          </div>
+        ) : trips.length > 0 ? (
+          <div className="grid gap-3">
+            {trips.slice(0, 2).map((trip: any) => (
+              <Link key={trip.id} href={`/trips/${trip.id}`}>
+                <Card className="hover:bg-muted/30 transition-colors border-l-4 border-l-primary">
+                  <CardContent className="p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-primary/10 rounded-full text-primary">
+                        <MapIcon className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">{trip.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {trip.members.length} members • {trip.status}
+                        </p>
+                      </div>
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <Card className="border-dashed">
+            <CardContent className="p-6 flex flex-col items-center justify-center text-center text-muted-foreground">
+              <MapIcon className="h-8 w-8 mb-2 opacity-20" />
+              <p className="text-sm">No recent trips</p>
+              <Button variant="link" asChild className="px-0 h-auto">
+                <Link href="/trips">Plan a trip</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
       {/* Recent Transactions */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
@@ -358,7 +409,7 @@ export default function DashboardPage() {
                     <div
                       className={cn(
                         "p-2 rounded-full",
-                        isIncome ? "bg-emerald-100" : "bg-red-100"
+                        isIncome ? "bg-emerald-100" : "bg-red-100",
                       )}
                     >
                       {isIncome ? (
@@ -378,7 +429,7 @@ export default function DashboardPage() {
                     <p
                       className={cn(
                         "font-semibold",
-                        isIncome ? "text-emerald-600" : "text-red-600"
+                        isIncome ? "text-emerald-600" : "text-red-600",
                       )}
                     >
                       {isIncome ? "+" : "-"}
