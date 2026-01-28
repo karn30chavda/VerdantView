@@ -126,18 +126,25 @@ export default function TripsPage() {
 
   return (
     <div className="flex flex-col gap-8 pb-20">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Group Trips</h1>
-          <p className="text-muted-foreground mt-1">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-2 border-b">
+        <div className="space-y-1">
+          <h1 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+            Group Trips
+          </h1>
+          <p className="text-muted-foreground text-lg">
             Manage expenses and settlements for your group adventures.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2">
-                <Download className="h-4 w-4" /> Data
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-10 rounded-full px-4 border-muted-foreground/20 hover:bg-muted/50 transition-all"
+              >
+                <Download className="mr-2 h-4 w-4 text-muted-foreground" />
+                <span className="font-medium">App Data</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
@@ -208,8 +215,9 @@ export default function TripsPage() {
 
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2 shadow-lg hover:shadow-xl transition-all">
-                <Plus className="h-4 w-4" /> New Trip
+              <Button className="h-10 rounded-full px-6 bg-primary text-primary-foreground shadow-lg hover:shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all gap-2">
+                <Plus className="h-5 w-5" />
+                <span className="font-semibold">New Trip</span>
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
@@ -378,7 +386,7 @@ export default function TripsPage() {
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
-                      className="text-destructive focus:text-destructive"
+                      className="text-destructive focus:bg-destructive/10 focus:text-destructive"
                       onClick={(e) => trip.id && handleDeleteTrip(e, trip.id)}
                     >
                       <Trash2 className="mr-2 h-4 w-4" /> Delete Trip

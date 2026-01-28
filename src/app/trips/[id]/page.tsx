@@ -226,38 +226,44 @@ export default function TripDetailPage({
         </Button>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">{trip.name}</h1>
-            <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <CalendarIcon className="h-4 w-4" />
+            <h1 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+              {trip.name}
+            </h1>
+            <div className="flex flex-wrap items-center gap-6 mt-3 text-sm text-muted-foreground font-medium">
+              <span className="flex items-center gap-2 px-3 py-1 bg-muted rounded-full">
+                <CalendarIcon className="h-4 w-4 text-primary" />
                 {format(new Date(trip.createdAt), "MMM d, yyyy")}
               </span>
-              <span className="flex items-center gap-1">
-                <Users className="h-4 w-4" />
+              <span className="flex items-center gap-2 px-3 py-1 bg-muted rounded-full">
+                <Users className="h-4 w-4 text-primary" />
                 {trip.members.length} Members
               </span>
               <span
                 className={cn(
-                  "flex items-center gap-1 font-medium",
+                  "flex items-center gap-2 px-3 py-1 rounded-full font-bold uppercase text-[10px] tracking-widest",
                   trip.status === "completed"
-                    ? "text-emerald-600"
-                    : "text-amber-600",
+                    ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
+                    : "bg-amber-500/10 text-amber-600 border border-amber-500/20",
                 )}
               >
                 {trip.status === "completed" ? (
-                  <CheckCircle2 className="h-4 w-4" />
+                  <CheckCircle2 className="h-3.5 w-3.5" />
                 ) : (
-                  <Loader2 className="h-4 w-4 animate-spin-slow" />
+                  <Loader2 className="h-3.5 w-3.5 animate-spin-slow" />
                 )}
-                {trip.status.charAt(0).toUpperCase() + trip.status.slice(1)}
+                {trip.status}
               </span>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-3">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon">
-                  <MoreVertical className="h-4 w-4" />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-10 w-10 rounded-full border-muted-foreground/20 hover:bg-muted transition-all"
+                >
+                  <MoreVertical className="h-4 w-4 text-muted-foreground" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
@@ -369,8 +375,9 @@ export default function TripDetailPage({
 
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="gap-2">
-                  <Plus className="h-4 w-4" /> Add Expense
+                <Button className="h-10 rounded-full px-6 bg-primary text-primary-foreground shadow-lg hover:shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all gap-2">
+                  <Plus className="h-5 w-5" />
+                  <span className="font-semibold text-sm">Add Expense</span>
                 </Button>
               </DialogTrigger>
               <DialogContent>
